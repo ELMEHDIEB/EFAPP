@@ -49,7 +49,7 @@ export async function updateAccountInfo(id, { name, targetCoins, weeklyLimit, gr
  * Always writes a matching coin_logs entry so balance and history
  * never drift apart. action: "ADD" | "REMOVE" | "SET_BALANCE"
  */
-export async function applyCoinChange(accountId, { action, reason, amount }) {
+export async function applyCoinChange(accountId, { action, reason, amount, linkedSpinId }) {
   const account = await db.accounts.get(accountId);
   if (!account) throw new Error("Compte introuvable.");
 
@@ -74,6 +74,7 @@ export async function applyCoinChange(accountId, { action, reason, amount }) {
       amount: amt,
       previousBalance: account.currentCoins,
       newBalance,
+      linkedSpinId: linkedSpinId || null
     });
   });
 
@@ -97,7 +98,7 @@ export function progressPercent(account) {
  * Reverts the balance, deletes the log, and if it was a spin, deletes the spin log too.
  */
 export async function undoLastAction(accountId) {
-  return await db.transaction("rw", db.accounts, db.coinLogs, db.spinLogs, db.spinPlayers, async () => {
+  return await db.transaction("rw", db.accounts, db.coinLogs, db.spinLogs, db.spinPlayers, db.regretLogs, async () => {
     const account = await db.accounts.get(accountId);
     if (!account) throw new Error("Compte introuvable.");
 
@@ -117,13 +118,23 @@ export async function undoLastAction(accountId) {
 
     // Revert Spin if applicable
     if (lastLog.action === "REMOVE" && lastLog.reason.startsWith("Spin —")) {
-      const spins = await db.spinLogs.where("accountId").equals(accountId).toArray();
-      if (spins.length > 0) {
-        const lastSpin = spins[spins.length - 1];
-        if (lastSpin.coinsSpent === lastLog.amount) {
-          await db.spinPlayers.where({ spinId: lastSpin.id }).delete();
-          await db.spinLogs.delete(lastSpin.id);
+      let targetSpinId = lastLog.linkedSpinId;
+      
+      // Backward compatibility fallback for historical spins
+      if (!targetSpinId) {
+        const spins = await db.spinLogs.where("accountId").equals(accountId).toArray();
+        if (spins.length > 0) {
+          const lastSpin = spins[spins.length - 1];
+          if (lastSpin.coinsSpent === lastLog.amount) {
+            targetSpinId = lastSpin.id;
+          }
         }
+      }
+
+      if (targetSpinId) {
+        await db.spinPlayers.where({ spinId: targetSpinId }).delete();
+        await db.regretLogs.where({ spinId: targetSpinId }).delete();
+        await db.spinLogs.delete(targetSpinId);
       }
     }
 
