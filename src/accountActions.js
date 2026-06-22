@@ -116,7 +116,7 @@ export async function undoLastAction(accountId) {
     await db.coinLogs.delete(lastLog.id);
 
     // Revert Spin if applicable
-    if (lastLog.action === "REMOVE" && lastLog.reason.startsWith("Spin:")) {
+    if (lastLog.action === "REMOVE" && lastLog.reason.startsWith("Spin —")) {
       const spins = await db.spinLogs.where("accountId").equals(accountId).toArray();
       if (spins.length > 0) {
         const lastSpin = spins[spins.length - 1];
