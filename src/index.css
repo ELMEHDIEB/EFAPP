@@ -29,37 +29,45 @@ html, body, #root {
 @layer components {
   /* Surface and Cards */
   .card {
-    @apply bg-panel border border-border rounded-xl shadow-card;
+    @apply bg-panel border border-border rounded-xl shadow-none overflow-hidden transition-all duration-300;
+  }
+  
+  .pro-card {
+    @apply bg-panel border border-border rounded-xl p-6 transition-all duration-300 shadow-[0_4px_24px_rgba(0,0,0,0.4)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.6)] hover:border-white/10 flex flex-col;
+  }
+
+  .pro-heading {
+    @apply text-sm font-semibold text-white uppercase tracking-wider flex items-center gap-2;
   }
   
   /* Buttons */
   .btn-base {
-    @apply inline-flex items-center justify-center font-medium text-sm rounded-lg px-4 py-2 transition-all duration-200 ease-out outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-ink;
+    @apply inline-flex items-center justify-center font-medium text-sm rounded-lg px-4 py-2 transition-all duration-200 outline-none focus-visible:ring-1 focus-visible:ring-offset-1 focus-visible:ring-offset-ink;
   }
   
   .btn-primary {
-    @apply btn-base bg-accent text-white hover:bg-accent2 shadow-[0_0_15px_rgba(16,185,129,0.2)] hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:-translate-y-0.5 focus-visible:ring-accent;
+    @apply btn-base bg-white text-ink hover:bg-white/90 shadow-sm focus-visible:ring-white;
   }
   
   .btn-secondary {
-    @apply btn-base bg-panel2 text-white border border-border hover:bg-border focus-visible:ring-textdim;
+    @apply btn-base bg-panel2 text-white border border-border hover:bg-border focus-visible:ring-textdim hover:text-white transition-colors;
   }
   
   .btn-danger {
-    @apply btn-base bg-danger/10 text-danger border border-danger/30 hover:bg-danger hover:text-white shadow-[0_0_10px_rgba(239,68,68,0.1)] hover:shadow-[0_0_15px_rgba(239,68,68,0.3)] focus-visible:ring-danger;
+    @apply btn-base bg-danger/10 text-danger border border-danger/30 hover:bg-danger hover:text-white focus-visible:ring-danger;
   }
 
   /* Form Elements */
   .input {
-    @apply bg-panel2 border border-border rounded-lg px-3 py-2 text-sm text-white placeholder-textdim transition-all duration-200 outline-none hover:border-textdim focus:border-accent focus:ring-1 focus:ring-accent shadow-inner;
+    @apply bg-panel2 border border-border rounded-lg px-3 py-2.5 text-sm text-white placeholder-textdim transition-all duration-200 outline-none hover:border-textdim/50 focus:border-white focus:ring-1 focus:ring-white;
   }
 
   /* Progress Bars */
   .progress-track {
-    @apply w-full h-2 bg-panel2 rounded-full overflow-hidden shadow-inner;
+    @apply w-full h-1.5 bg-panel2 rounded-full overflow-hidden;
   }
   
   .progress-fill {
-    @apply h-full bg-gradient-to-r from-accent2 to-accent rounded-full transition-all duration-500 ease-out shadow-[0_0_10px_rgba(16,185,129,0.3)];
+    @apply h-full bg-white rounded-full transition-all duration-500 ease-out;
   }
 }

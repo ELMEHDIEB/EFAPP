@@ -9,6 +9,8 @@ import {
   progressPercent,
   undoLastAction
 } from "../accountActions.js";
+import { useToast } from "../components/ui/ToastContext.jsx";
+import { useConfirm } from "../components/ui/ConfirmContext.jsx";
 
 export default function Accounts() {
   const accounts = useLiveQuery(() => db.accounts.orderBy("name").toArray(), []);
@@ -17,9 +19,15 @@ export default function Accounts() {
   const [adjustTarget, setAdjustTarget] = useState(null); // account being adjusted
   const [editTarget, setEditTarget] = useState(null); // account being edited
   const [error, setError] = useState("");
+  const toast = useToast();
+  const confirm = useConfirm();
 
   if (!accounts) {
-    return <p className="text-textdim">Chargement…</p>;
+    return (
+      <div className="flex h-[70vh] items-center justify-center">
+        <div className="w-8 h-8 border-2 border-white/10 border-t-white rounded-full animate-spin"></div>
+      </div>
+    );
   }
 
   return (
@@ -41,8 +49,19 @@ export default function Accounts() {
       </div>
 
       {accounts.length === 0 && (
-        <div className="border border-dashed border-border rounded-xl py-16 text-center text-textdim bg-panel/50">
-          Aucun compte pour l'instant. Ajoute ton premier compte pour commencer le suivi.
+        <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in">
+          <div className="w-16 h-16 mb-6 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
+            <svg className="w-8 h-8 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-bold text-white tracking-tight mb-2">Aucun compte configuré</h2>
+          <p className="text-sm text-textdim max-w-sm mb-6">
+            Commencez par ajouter votre compte principal ou secondaire pour initier le suivi des coins et de la progression.
+          </p>
+          <button onClick={() => { setError(""); setShowAdd(true); }} className="btn-primary">
+            Créer un compte
+          </button>
         </div>
       )}
 
@@ -52,26 +71,29 @@ export default function Accounts() {
           return (
             <div
               key={acc.id}
-              className="card p-5 flex flex-col md:flex-row md:items-center gap-4 transition-all hover:border-textdim/50"
+              className="pro-card flex-row items-center gap-6 p-5"
             >
               <div className="flex-1 min-w-0">
-                <div className="flex items-baseline gap-2">
-                  <p className="text-lg font-semibold text-white truncate">{acc.name}</p>
+                <div className="flex items-baseline gap-3 mb-3">
+                  <p className="text-lg font-bold text-white tracking-tight truncate">{acc.name}</p>
                   {acc.groupTag && (
-                    <span className="text-xs text-textdim font-medium border border-border rounded px-2 py-0.5 bg-panel2">
+                    <span className="text-[10px] uppercase tracking-widest text-textdim font-semibold border border-white/10 rounded px-2 py-0.5 bg-ink">
                       {acc.groupTag}
                     </span>
                   )}
                 </div>
-                <div className="mt-3 progress-track">
-                  <div
-                    className="progress-fill"
-                    style={{ width: `${pct}%` }}
-                  />
+                <div className="progress-track bg-ink">
+                  <div className={`progress-fill ${pct >= 100 ? 'bg-accent' : 'bg-white'}`} style={{ width: `${Math.min(pct, 100)}%` }} />
                 </div>
-                <p className="text-xs font-medium text-textdim mt-2">
-                  <span className={acc.currentCoins >= 900 ? "text-accent" : "text-white"}>{acc.currentCoins.toLocaleString()}</span> / {acc.targetCoins.toLocaleString()} coins ({pct}%)
-                </p>
+                <div className="flex items-center justify-between mt-2">
+                  <p className="text-xs font-medium text-textdim">
+                    <span className={acc.currentCoins >= 900 ? "text-accent font-bold" : "text-white font-semibold"}>
+                      {acc.currentCoins.toLocaleString()}
+                    </span> 
+                    <span className="opacity-50"> / {acc.targetCoins.toLocaleString()}</span>
+                  </p>
+                  <p className="text-[10px] font-mono text-textdim font-bold">{pct}%</p>
+                </div>
               </div>
 
               <div className="flex gap-2 shrink-0 md:ml-4">
@@ -79,8 +101,9 @@ export default function Accounts() {
                   onClick={async () => {
                     try {
                       await undoLastAction(acc.id);
+                      toast(`Action annulée sur ${acc.name}`, 'success');
                     } catch (err) {
-                      alert(err.message);
+                      toast(err.message, 'error');
                     }
                   }}
                   className="btn-secondary px-3 py-1.5 text-xs"
@@ -102,8 +125,16 @@ export default function Accounts() {
                 </button>
                 <button
                   onClick={async () => {
-                    if (confirm(`Supprimer "${acc.name}" et tout son historique ?`)) {
+                    const isConfirmed = await confirm({
+                      title: "Supprimer ce compte ?",
+                      message: `Êtes-vous sûr de vouloir supprimer "${acc.name}" et tout son historique ? Cette action est irréversible.`,
+                      confirmLabel: "Supprimer",
+                      cancelLabel: "Annuler",
+                      isDanger: true
+                    });
+                    if (isConfirmed) {
                       await deleteAccount(acc.id);
+                      toast(`Compte "${acc.name}" supprimé`, 'success');
                     }
                   }}
                   className="btn-danger px-3 py-1.5 text-xs"
@@ -179,13 +210,13 @@ function ModalShell({ title, onClose, children }) {
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 bg-ink/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div ref={modalRef} className="card bg-panel p-6 w-full max-w-sm shadow-2xl relative overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-accent/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
+    <div className="fixed inset-0 bg-ink/90 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+      <div ref={modalRef} className="bg-panel border border-white/10 p-6 rounded-2xl w-full max-w-md shadow-[0_10px_40px_rgba(0,0,0,0.8)] relative overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
         <div className="relative z-10">
-          <div className="flex items-center justify-between mb-6">
-            <h2 id="modal-title" className="text-lg font-semibold text-white tracking-tight">{title}</h2>
-            <button onClick={onClose} aria-label="Fermer" className="text-textdim hover:text-white transition-colors p-1 rounded-md hover:bg-panel2">
+          <div className="flex items-center justify-between mb-8">
+            <h2 id="modal-title" className="text-xl font-bold text-white tracking-tight">{title}</h2>
+            <button onClick={onClose} aria-label="Fermer" className="text-textdim hover:text-white transition-colors p-1.5 rounded-md hover:bg-white/5">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
