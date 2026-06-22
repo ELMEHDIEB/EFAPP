@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db.js";
+import { useToast } from "../components/ui/ToastContext.jsx";
+import { useConfirm } from "../components/ui/ConfirmContext.jsx";
 
 const TABLES = [
   "accounts",
@@ -14,7 +16,8 @@ const TABLES = [
 ];
 
 export default function Settings() {
-  const [status, setStatus] = useState("");
+  const toast = useToast();
+  const confirm = useConfirm();
 
   async function exportBackup() {
     const dump = {};
@@ -27,16 +30,26 @@ export default function Settings() {
     a.download = `efootball-coin-manager-backup-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    setStatus("Backup téléchargé.");
+    toast("Backup téléchargé avec succès.", "success");
   }
 
   async function importBackup(e) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!confirm("Importer va REMPLACER toutes les données actuelles. Continuer ?")) {
+    
+    const isConfirmed = await confirm({
+      title: "Importer un backup ?",
+      message: "L'importation va REMPLACER toutes les données actuelles. Cette action est irréversible. Continuer ?",
+      confirmLabel: "Écraser les données",
+      cancelLabel: "Annuler",
+      isDanger: true
+    });
+
+    if (!isConfirmed) {
       e.target.value = "";
       return;
     }
+
     try {
       const text = await file.text();
       const dump = JSON.parse(text);
@@ -46,9 +59,9 @@ export default function Settings() {
           if (Array.isArray(dump[t])) await db[t].bulkAdd(dump[t]);
         }
       });
-      setStatus("Backup importé avec succès.");
+      toast("Backup importé avec succès. Les données ont été mises à jour.", "success");
     } catch (err) {
-      setStatus("Erreur à l'import : " + err.message);
+      toast("Erreur à l'import : " + err.message, "error");
     } finally {
       e.target.value = "";
     }
@@ -61,16 +74,26 @@ export default function Settings() {
 
   async function savePin(e) {
     e.preventDefault();
-    if (pinInput.trim().length < 4) return setStatus("Le code PIN doit faire au moins 4 caractères.");
+    if (pinInput.trim().length < 4) {
+      return toast("Le code PIN doit faire au moins 4 caractères.", "error");
+    }
     await db.settings.put({ key: "pinLock", value: pinInput.trim() });
     setPinInput("");
-    setStatus("Code PIN configuré. L'application est désormais verrouillée au démarrage.");
+    toast("Code PIN configuré. L'application est désormais verrouillée.", "success");
   }
 
   async function removePin() {
-    if (confirm("Êtes-vous sûr de vouloir retirer le verrouillage par code PIN ?")) {
+    const isConfirmed = await confirm({
+      title: "Retirer le code PIN ?",
+      message: "Êtes-vous sûr de vouloir retirer le verrouillage par code PIN ? L'application sera accessible sans protection.",
+      confirmLabel: "Retirer",
+      cancelLabel: "Annuler",
+      isDanger: true
+    });
+
+    if (isConfirmed) {
       await db.settings.delete("pinLock");
-      setStatus("Code PIN retiré. L'application n'est plus verrouillée.");
+      toast("Code PIN retiré. L'application n'est plus verrouillée.", "success");
     }
   }
 
@@ -83,72 +106,107 @@ export default function Settings() {
         restaurer tes données si tu changes de machine ou de navigateur.
       </p>
 
-      <div className="bg-panel border border-border rounded-lg p-4 flex flex-col gap-3 mb-6">
-        <h2 className="text-sm font-semibold text-white mb-2">Sécurité & Confidentialité</h2>
+      <div className="pro-card mb-6">
+        <h2 className="pro-heading mb-6">
+          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8V7a4 4 0 00-8 0v4h8z" /></svg>
+          Sécurité & Confidentialité
+        </h2>
         
         {hasPin ? (
-          <div className="flex flex-col gap-2 p-3 bg-panel2 rounded-md border border-border">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-white font-medium flex items-center gap-2">
-                  <span className="text-accent">●</span> Verrouillage actif
-                </p>
-                <p className="text-xs text-textdim mt-1">L'application demande un code PIN au démarrage.</p>
-              </div>
-              <button onClick={removePin} className="btn-secondary text-xs px-3 py-1.5">
-                Désactiver le verrouillage
-              </button>
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 bg-ink rounded-xl border border-white/5">
+            <div>
+              <p className="text-sm text-white font-bold flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-accent"></span> Verrouillage actif
+              </p>
+              <p className="text-xs text-textdim mt-1">L'application exige le code PIN au démarrage.</p>
             </div>
+            <button onClick={removePin} className="btn-secondary w-full md:w-auto">
+              Désactiver
+            </button>
           </div>
         ) : (
-          <form onSubmit={savePin} className="flex flex-col gap-2 p-3 bg-panel2 rounded-md border border-border">
-            <p className="text-sm text-white font-medium">Activer le verrouillage par PIN</p>
-            <p className="text-xs text-textdim mb-2">Empêche l'accès à l'application sans ce code local. (Aucun compte en ligne n'est créé).</p>
-            <div className="flex gap-2">
+          <form onSubmit={savePin} className="flex flex-col gap-4 p-5 bg-ink rounded-xl border border-white/5">
+            <div>
+              <p className="text-sm font-bold text-white mb-1">Activer le verrouillage par PIN</p>
+              <p className="text-xs text-textdim leading-relaxed">Protégez vos données comportementales avec un code PIN local.</p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
               <input 
                 type="password" 
                 value={pinInput} 
                 onChange={e => setPinInput(e.target.value)} 
-                placeholder="Nouveau code PIN..." 
+                placeholder="Code PIN à 4+ chiffres" 
                 className="input flex-1"
                 maxLength={10}
               />
-              <button type="submit" className="btn-primary text-xs px-4">
-                Activer
+              <button type="submit" className="btn-primary">
+                Activer la protection
               </button>
             </div>
           </form>
         )}
       </div>
 
-      <div className="bg-panel border border-border rounded-lg p-4 flex flex-col gap-3">
-        <h2 className="text-sm font-semibold text-white mb-2">Sauvegarde des données</h2>
-        <div className="flex items-center justify-between">
+      <div className="pro-card">
+        <h2 className="pro-heading mb-6">
+          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
+          Données Locales
+        </h2>
+        
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 border-b border-border/50">
           <div>
-            <p className="text-sm text-white">Exporter un backup</p>
-            <p className="text-xs text-textdim">Télécharge toutes tes données en JSON</p>
+            <p className="text-sm font-bold text-white mb-1">Sauvegarder les données</p>
+            <p className="text-xs text-textdim">Générer un fichier JSON de votre progression.</p>
           </div>
-          <button
-            onClick={exportBackup}
-            className="text-xs px-3 py-1.5 rounded-md border border-border text-white hover:bg-panel2"
-          >
-            Exporter
+          <button onClick={exportBackup} className="btn-secondary w-full md:w-auto">
+            Exporter JSON
           </button>
         </div>
 
-        <div className="flex items-center justify-between border-t border-border pt-3">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4">
           <div>
-            <p className="text-sm text-white">Importer un backup</p>
-            <p className="text-xs text-textdim">Remplace les données actuelles</p>
+            <p className="text-sm font-bold text-warn mb-1">Restaurer les données</p>
+            <p className="text-xs text-textdim">Écrase toutes vos données actuelles.</p>
           </div>
-          <label className="text-xs px-3 py-1.5 rounded-md border border-border text-white hover:bg-panel2 cursor-pointer">
-            Importer
+          <label className="btn-secondary w-full md:w-auto text-center cursor-pointer">
+            Importer JSON
             <input type="file" accept="application/json" onChange={importBackup} className="hidden" />
           </label>
         </div>
       </div>
 
-      {status && <p className="text-xs text-textdim mt-3 font-medium bg-panel2 p-3 rounded border border-border">{status}</p>}
+      <div className="pro-card">
+        <h2 className="pro-heading mb-6">
+          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          À propos d'EFAPP
+        </h2>
+        
+        <div className="p-4 bg-ink rounded-xl border border-white/5 space-y-4">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-xl font-bold text-white tracking-tight">EFAPP</h3>
+              <p className="text-xs font-mono text-textdim mt-1">Version: v1.1 UI Pro Max</p>
+            </div>
+            <div className="px-2 py-1 bg-accent/10 border border-accent/20 rounded text-[10px] font-bold text-accent uppercase tracking-widest">
+              Production Ready
+            </div>
+          </div>
+          
+          <div className="pt-4 border-t border-border">
+            <p className="text-xs font-medium text-textdim uppercase tracking-wider mb-2">Architecture Locale</p>
+            <div className="flex gap-2">
+              <span className="px-2 py-1 bg-white/5 border border-white/10 rounded text-[10px] font-mono text-white">React</span>
+              <span className="px-2 py-1 bg-white/5 border border-white/10 rounded text-[10px] font-mono text-white">Dexie</span>
+              <span className="px-2 py-1 bg-white/5 border border-white/10 rounded text-[10px] font-mono text-white">IndexedDB</span>
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-border">
+            <p className="text-[10px] text-textdim uppercase tracking-widest mb-1">Created by</p>
+            <p className="text-sm font-semibold text-white tracking-wide">EL MEHDI MTM</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

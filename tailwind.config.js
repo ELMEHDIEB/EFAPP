@@ -4,10 +4,10 @@ export default {
   theme: {
     extend: {
       colors: {
-        ink: "#09090b",       // Zinc 950 App background
-        panel: "#18181b",     // Zinc 900 Card background
-        panel2: "#27272a",    // Zinc 800 Elevated surfaces
-        border: "#3f3f46",    // Zinc 700 Subtle borders
+        ink: "#000000",       // Pure Black app background
+        panel: "#0A0A0A",     // Almost black card background
+        panel2: "#111111",    // Elevated surfaces
+        border: "#27272a",    // Very subtle borders
         accent: "#10b981",    // Emerald 500
         accent2: "#059669",   // Emerald 600
         warn: "#f59e0b",      // Amber 500
