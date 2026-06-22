@@ -1,0 +1,26 @@
+Avant de continuer, relis la nouvelle section 14 (ADDENDUM) du fichier CLAUDE_INSTRUCTIONS
+mis à jour que je viens de déposer — elle répond à tes 3 questions précédentes.
+
+Deux tâches à exécuter maintenant, dans cet ordre :
+
+TÂCHE A — Verrou PIN local (rapide, à faire en premier)
+Implémente exactement ce qui est décrit en section 14.1 : un écran de saisie de code PIN
+au démarrage de l'app si settings.pinLock existe, configurable/retirable depuis Paramètres.
+Pas de compte utilisateur, pas de backend, juste une valeur dans la table settings.
+
+TÂCHE B — Reprends l'étape 3 du plan original, en intégrant la limite hebdomadaire
+En plus de ce qui était déjà prévu pour l'étape 3 (Anti-FOMO, Mode urgence, Récupération
+post-perte, Suivi des regrets), ajoute la fonctionnalité décrite en section 14.2 (limite de
+dépense hebdomadaire optionnelle par compte, en coins).
+
+Contrainte stricte sur le design de friction (section 14.3) : AUCUNE animation de
+clignotement/flash, même pour les alertes les plus critiques — utilise des couleurs statiques
+(warn/danger déjà définies) et un délai bloquant simple avant d'activer un bouton de
+confirmation à risque.
+
+Format de livraison : le code complet de chaque fichier nouveau ou modifié (fichier entier,
+pas d'extrait), confirmation que npm run build ne produirait pas d'erreur, puis un résumé
+court de ce qui est livré.
+
+Si quoi que ce soit dans la section 14 te semble en tension avec les contraintes non
+négociables de la section 2, signale-le avant de coder.
