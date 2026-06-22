@@ -7,7 +7,7 @@ import Sidebar from "./components/Sidebar.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Accounts from "./pages/Accounts.jsx";
 import SpinTracker from "./pages/SpinTracker.jsx";
-import MentalCoach from "./pages/MentalCoach.jsx";
+import EmotionalJournal from "./pages/EmotionalJournal.jsx";
 import Analytics from "./pages/Analytics.jsx";
 import Settings from "./pages/Settings.jsx";
 import PinLock from "./pages/PinLock.jsx";
@@ -33,7 +33,7 @@ export default function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/accounts" element={<Accounts />} />
           <Route path="/spin-tracker" element={<SpinTracker />} />
-          <Route path="/mental-coach" element={<MentalCoach />} />
+          <Route path="/journal" element={<EmotionalJournal />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/post-loss-recovery" element={<PostLossRecovery />} />

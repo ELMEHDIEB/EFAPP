@@ -15,14 +15,7 @@ export async function createSpin(accountId, { packName, coinsSpent, spins, satis
   if (amt > account.currentCoins) throw new Error("Fonds insuffisants. Le solde ne peut pas devenir négatif.");
 
   return await db.transaction("rw", db.accounts, db.coinLogs, db.spinLogs, db.spinPlayers, async () => {
-    // 1. Deduct coins using standard action
-    await applyCoinChange(accountId, {
-      action: "REMOVE",
-      reason: `Spin — ${packName}`,
-      amount: amt,
-    });
-
-    // 2. Add Spin Log
+    // 1. Add Spin Log EN PREMIER pour générer l'ID
     const spinId = await db.spinLogs.add({
       accountId,
       date: today(),
@@ -34,6 +27,14 @@ export async function createSpin(accountId, { packName, coinsSpent, spins, satis
       emotionBefore: emotionBefore || "",
       emotionAfter: emotionAfter || "",
       createdAt: new Date().toISOString()
+    });
+
+    // 2. Deduct coins en injectant le linkedSpinId
+    await applyCoinChange(accountId, {
+      action: "REMOVE",
+      reason: `Spin — ${packName}`,
+      amount: amt,
+      linkedSpinId: spinId
     });
 
     // 3. Add players
@@ -65,7 +66,10 @@ export function getProtection900Status(account) {
   return { isBelowThreshold, coinsMissing, message };
 }
 
-export function classifyImpulseRisk({ wasPlanned, emotionBefore }) {
+export function classifyImpulseRisk(spin) {
+  if (!spin || typeof spin !== "object") return "Rational";
+  const { wasPlanned, emotionBefore } = spin;
+
   const isNegativeEmotion = ["Frustré", "Ennuyé", "Stressé"].includes(emotionBefore);
   const isExcited = emotionBefore === "Excité";
   

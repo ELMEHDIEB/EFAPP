@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { db } from "../db.js";
 import { progressPercent } from "../accountActions.js";
 import { classifyImpulseRisk, getPendingRegrets, logRegret } from "../spinActions.js";
+import { getGlobalDisciplineScore } from "../scoreActions.js";
 
 export default function Dashboard() {
   const accounts = useLiveQuery(() => db.accounts.toArray(), []);
@@ -30,8 +31,16 @@ export default function Dashboard() {
     );
   }
 
-  // 1. Discipline Score (Placeholder for Step 4)
-  const disciplineScore = "Bientôt disponible (Étape 4)";
+  // 1. Discipline Score
+  const disciplineScoreData = useLiveQuery(() => getGlobalDisciplineScore(), []) || { score: 100, isEvaluating: true };
+  const disciplineScoreText = disciplineScoreData.isEvaluating ? "En évaluation" : `${disciplineScoreData.score}/100`;
+  const scoreColor = disciplineScoreData.isEvaluating 
+    ? "text-white" 
+    : disciplineScoreData.score >= 80 
+      ? "text-accent" 
+      : disciplineScoreData.score >= 50 
+        ? "text-warn" 
+        : "text-danger";
 
   // 2. Comptes approchant 900
   const accountsApproaching900 = accounts.filter(a => a.currentCoins >= 750 && a.currentCoins < 900);
@@ -100,10 +109,12 @@ export default function Dashboard() {
           <div className="relative z-10">
             <p className="text-xs font-semibold text-textdim uppercase tracking-widest mb-2">Score de Discipline</p>
             <div className="flex items-baseline gap-2 mb-2">
-              <span className="text-3xl font-black text-white tracking-tighter">{disciplineScore}</span>
+              <span className={`text-3xl font-black tracking-tighter ${scoreColor}`}>{disciplineScoreText}</span>
             </div>
             <p className="text-sm text-textdim/90 leading-relaxed">
-              Votre régularité et votre maîtrise de l'impulsivité.
+              {disciplineScoreData.isEvaluating 
+                ? "Effectuez au moins 3 tirages pour obtenir votre première évaluation."
+                : "Votre régularité et votre maîtrise de l'impulsivité sur les 30 derniers jours."}
             </p>
           </div>
         </div>
