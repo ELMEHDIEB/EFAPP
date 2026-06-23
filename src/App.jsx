@@ -20,6 +20,8 @@ import PostLossRecovery from "./pages/PostLossRecovery.jsx";
 const Analytics = lazy(() => import("./pages/Analytics.jsx"));
 const BilanTracker = lazy(() => import("./pages/BilanTracker.jsx"));
 const CommandPalette = lazy(() => import("./components/ui/CommandPalette.jsx").then(m => ({ default: m.CommandPalette })));
+const Achievements = lazy(() => import("./pages/Achievements.jsx"));
+const Leaderboard = lazy(() => import("./pages/Leaderboard.jsx"));
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -50,6 +52,8 @@ export default function App() {
                 <Route path="/spin-tracker" element={<SpinTracker />} />
                 <Route path="/journal" element={<EmotionalJournal />} />
                 <Route path="/analytics" element={<ErrorBoundary><Analytics /></ErrorBoundary>} />
+                <Route path="/achievements" element={<Achievements />} />
+                <Route path="/leaderboard" element={<Leaderboard />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/post-loss-recovery" element={<PostLossRecovery />} />
               </Routes>

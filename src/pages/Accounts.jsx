@@ -11,9 +11,11 @@ import {
 } from "../accountActions.js";
 import { useToast } from "../components/ui/ToastContext.jsx";
 import { useConfirm } from "../components/ui/ConfirmContext.jsx";
+import { getMotivationMessage } from "../utils/motivationEngine.js";
 
 export default function Accounts() {
   const accounts = useLiveQuery(() => db.accounts.orderBy("name").toArray(), []);
+  const coinLogs = useLiveQuery(() => db.coinLogs.toArray(), []);
 
   const [showAdd, setShowAdd] = useState(false);
   const [adjustTarget, setAdjustTarget] = useState(null); // account being adjusted
@@ -94,6 +96,15 @@ export default function Accounts() {
                   </p>
                   <p className="text-[10px] font-mono text-textdim font-bold">{pct}%</p>
                 </div>
+                {/* Motivation Message */}
+                {(() => {
+                  const motivation = getMotivationMessage(acc, accounts, coinLogs);
+                  return (
+                    <p className={`text-[11px] mt-2 font-medium ${motivation.type === 'success' ? 'text-accent' : motivation.type === 'warn' ? 'text-warn' : 'text-textdim'}`}>
+                      {motivation.message}
+                    </p>
+                  );
+                })()}
                 {/* Quick Coin Actions */}
                 <div className="flex gap-1.5 mt-3">
                   {[25, 50, 100, 250].map(amount => (

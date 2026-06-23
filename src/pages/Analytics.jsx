@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db.js";
 import { 
@@ -6,6 +6,7 @@ import {
   PieChart, Pie, Cell, BarChart, Bar, Legend
 } from 'recharts';
 import { getNextGoal, getGoalDistribution } from "../utils/goalEngine.js";
+import { getDisciplineScore, getDisciplineLabel } from "../scoreActions.js";
 import ExportCenter from "../components/ExportCenter.jsx";
 
 // Couleurs de la charte graphique UI Pro Max
@@ -14,6 +15,22 @@ const COLORS = ['#ffffff', '#888888', '#3b82f6', '#ef4444', '#10b981', '#f59e0b'
 export default function Analytics() {
   const accounts = useLiveQuery(() => db.accounts.toArray(), []);
   const coinLogs = useLiveQuery(() => db.coinLogs.toArray(), []);
+  const [disciplineData, setDisciplineData] = useState({});
+
+  useEffect(() => {
+    if (!accounts || accounts.length === 0) return;
+    let cancelled = false;
+    async function loadScores() {
+      const data = {};
+      for (const acc of accounts) {
+        const result = await getDisciplineScore(acc.id);
+        data[acc.id] = result;
+      }
+      if (!cancelled) setDisciplineData(data);
+    }
+    loadScores();
+    return () => { cancelled = true; };
+  }, [accounts]);
 
   const { multiLineData, pieData, growthData, reportTable, goalDistData } = useMemo(() => {
     if (!accounts || !coinLogs || accounts.length === 0) {
@@ -403,6 +420,264 @@ export default function Analytics() {
                   return goaled > 0 ? `Basé sur ${goaled} compte(s)` : "Pas assez de données";
                 })()}
               </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Row 5: Advanced Intelligence */}
+      <div className="grid grid-cols-1 gap-6">
+        <h2 className="text-xl font-bold text-white tracking-tight">Advanced Intelligence</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Goal Success Rate */}
+          <div className="pro-card p-5 justify-between gap-4 bg-panel">
+            <p className="text-xs font-bold text-textdim uppercase tracking-wider flex items-center gap-2">
+              <svg className="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              Success Rate
+            </p>
+            <div>
+              <p className="text-3xl font-black tracking-tight mb-1 text-white">
+                {accounts.length > 0 ? Math.round((accounts.filter(a => a.currentCoins >= 900).length / accounts.length) * 100) : 0}%
+              </p>
+              <p className="text-xs font-medium text-textdim">des comptes ont atteint l'objectif</p>
+            </div>
+          </div>
+
+          {/* Best Performer */}
+          <div className="pro-card p-5 justify-between gap-4 bg-panel">
+            <p className="text-xs font-bold text-textdim uppercase tracking-wider flex items-center gap-2">
+              <svg className="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+              Best Performer (7j)
+            </p>
+            <div>
+              {(() => {
+                const now = new Date();
+                const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000).toISOString().slice(0, 10);
+                const recentLogs = coinLogs.filter(l => l.date >= sevenDaysAgo);
+                
+                const performance = {};
+                recentLogs.forEach(log => {
+                  if (!performance[log.accountId]) performance[log.accountId] = 0;
+                  performance[log.accountId] += (log.newBalance - log.previousBalance);
+                });
+
+                let bestId = null;
+                let maxDelta = -Infinity;
+                for (const [id, delta] of Object.entries(performance)) {
+                  if (delta > maxDelta) {
+                    maxDelta = delta;
+                    bestId = Number(id);
+                  }
+                }
+
+                const bestAcc = accounts.find(a => a.id === bestId);
+                
+                if (bestAcc && maxDelta > 0) {
+                  return (
+                    <>
+                      <p className="text-2xl font-black tracking-tight mb-1 text-white truncate">{bestAcc.name}</p>
+                      <p className="text-xs font-medium text-accent">+{maxDelta} coins générés</p>
+                    </>
+                  );
+                }
+                return (
+                  <>
+                    <p className="text-2xl font-black tracking-tight mb-1 text-textdim">—</p>
+                    <p className="text-xs font-medium text-textdim">Pas de croissance récente</p>
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+
+          {/* Recovery Rate */}
+          <div className="pro-card p-5 justify-between gap-4 bg-panel">
+            <p className="text-xs font-bold text-textdim uppercase tracking-wider flex items-center gap-2">
+              <svg className="w-4 h-4 text-warn" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+              Recovery Rate
+            </p>
+            <div>
+              {(() => {
+                let recoveredCount = 0;
+                let totalFallen = 0;
+                
+                const accountIds = [...new Set(coinLogs.map(l => l.accountId))];
+                for (const accId of accountIds) {
+                  const logs = coinLogs
+                    .filter(l => l.accountId === accId)
+                    .sort((a, b) => new Date(a.date) - new Date(b.date));
+                  
+                  let wentBelow900 = false;
+                  let cameBackAbove900 = false;
+                  
+                  for (const log of logs) {
+                    if (log.previousBalance >= 900 && log.newBalance < 900) {
+                      wentBelow900 = true;
+                    }
+                    if (wentBelow900 && log.newBalance >= 900) {
+                      cameBackAbove900 = true;
+                    }
+                  }
+                  
+                  if (wentBelow900) totalFallen++;
+                  if (cameBackAbove900) recoveredCount++;
+                }
+
+                if (totalFallen === 0) {
+                   return (
+                    <>
+                      <p className="text-3xl font-black tracking-tight mb-1 text-white">N/A</p>
+                      <p className="text-xs font-medium text-textdim">Aucune chute sous 900 enregistrée</p>
+                    </>
+                  );
+                }
+
+                const rate = Math.round((recoveredCount / totalFallen) * 100);
+                return (
+                  <>
+                    <p className={`text-3xl font-black tracking-tight mb-1 ${rate > 50 ? 'text-accent' : 'text-warn'}`}>{rate}%</p>
+                    <p className="text-xs font-medium text-textdim">{recoveredCount} récupérations sur {totalFallen} chutes</p>
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+
+          {/* Discipline Distribution */}
+          <div className="pro-card p-5 justify-between gap-4 bg-panel">
+            <p className="text-xs font-bold text-textdim uppercase tracking-wider flex items-center gap-2">
+              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>
+              Discipline Profile
+            </p>
+            <div>
+              {(() => {
+                if (Object.keys(disciplineData).length === 0) return <p className="text-xs text-textdim">Chargement...</p>;
+                
+                const dist = { Elite: 0, Good: 0, Average: 0, Risky: 0 };
+                let total = 0;
+                Object.values(disciplineData).forEach(ds => {
+                  if (!ds.isEvaluating) {
+                    dist[getDisciplineLabel(ds.score)]++;
+                    total++;
+                  }
+                });
+
+                if (total === 0) return <p className="text-xs text-textdim">Pas assez de données (3+ spins requis)</p>;
+
+                return (
+                  <div className="flex w-full h-3 rounded-full overflow-hidden mb-2 bg-ink">
+                    {dist.Elite > 0 && <div className="bg-accent h-full" style={{ width: `${(dist.Elite/total)*100}%` }} title={`Elite: ${dist.Elite}`} />}
+                    {dist.Good > 0 && <div className="bg-white h-full" style={{ width: `${(dist.Good/total)*100}%` }} title={`Good: ${dist.Good}`} />}
+                    {dist.Average > 0 && <div className="bg-warn h-full" style={{ width: `${(dist.Average/total)*100}%` }} title={`Average: ${dist.Average}`} />}
+                    {dist.Risky > 0 && <div className="bg-danger h-full" style={{ width: `${(dist.Risky/total)*100}%` }} title={`Risky: ${dist.Risky}`} />}
+                  </div>
+                );
+              })()}
+              <div className="flex gap-2 text-[9px] uppercase tracking-widest text-textdim font-bold justify-between">
+                <span className="text-accent">Elite</span>
+                <span className="text-white">Good</span>
+                <span className="text-warn">Avg</span>
+                <span className="text-danger">Risk</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Achievement Progress */}
+          <div className="pro-card p-5 justify-between gap-4 bg-panel">
+            <p className="text-xs font-bold text-textdim uppercase tracking-wider flex items-center gap-2">
+              <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+              Achievements
+            </p>
+            <div>
+              {(() => {
+                // Approximate calculation (similar to Achievements page but simpler)
+                let unlockedCount = 0;
+                if (accounts.some(a => a.currentCoins >= 900)) unlockedCount++; // Goal Hunter
+                if (accounts.filter(a => a.currentCoins >= 900).length >= 3) unlockedCount++; // Elite Collector
+                
+                // Consistency
+                const byDate = {};
+                coinLogs.forEach(l => {
+                  if (!byDate[l.date]) byDate[l.date] = 0;
+                  byDate[l.date] += (l.newBalance - l.previousBalance);
+                });
+                let streak = 0, maxStreak = 0;
+                Object.keys(byDate).sort().forEach(d => {
+                  if (byDate[d] > 0) { streak++; maxStreak = Math.max(maxStreak, streak); } else streak = 0;
+                });
+                if (maxStreak >= 7) unlockedCount++;
+
+                // Discipline
+                if (Object.values(disciplineData).some(ds => ds.score >= 90 && !ds.isEvaluating)) unlockedCount++;
+
+                // Comeback
+                let comeback = false;
+                const accountIds = [...new Set(coinLogs.map(l => l.accountId))];
+                for (const accId of accountIds) {
+                  let wentBelow500 = false;
+                  for (const log of coinLogs.filter(l => l.accountId === accId).sort((a, b) => new Date(a.date) - new Date(b.date))) {
+                    if (log.newBalance < 500) wentBelow500 = true;
+                    if (wentBelow500 && log.newBalance >= 900) { comeback = true; break; }
+                  }
+                  if (comeback) break;
+                }
+                if (comeback) unlockedCount++;
+
+                // Marathon
+                if (accounts.some(a => a.createdAt && (Date.now() - new Date(a.createdAt).getTime()) >= 30 * 86400000)) unlockedCount++;
+
+                const progress = Math.round((unlockedCount / 6) * 100);
+
+                return (
+                  <>
+                    <p className="text-3xl font-black tracking-tight mb-1 text-white">{unlockedCount} / 6</p>
+                    <div className="w-full h-1 bg-ink rounded-full overflow-hidden mt-2 mb-1">
+                      <div className="h-full rounded-full bg-purple-400" style={{ width: `${progress}%` }} />
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+
+          {/* Goal Completion Trend */}
+          <div className="pro-card p-5 justify-between gap-4 bg-panel">
+            <p className="text-xs font-bold text-textdim uppercase tracking-wider flex items-center gap-2">
+              <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
+              Goal Trend (14j)
+            </p>
+            <div className="flex items-end gap-1 h-10 w-full">
+              {(() => {
+                const now = new Date();
+                const days = [];
+                for (let i = 13; i >= 0; i--) {
+                  const d = new Date(now.getTime() - i * 86400000).toISOString().slice(0, 10);
+                  days.push(d);
+                }
+
+                // Simulate accounts balance per day
+                const accBalances = {};
+                accounts.forEach(a => accBalances[a.id] = 0);
+                
+                const trendData = days.map(d => {
+                  const logsToDate = coinLogs.filter(l => l.date <= d).sort((a, b) => a.id - b.id);
+                  logsToDate.forEach(l => accBalances[l.accountId] = l.newBalance);
+                  let goaled = 0;
+                  accounts.forEach(a => { if (accBalances[a.id] >= 900) goaled++; });
+                  return goaled;
+                });
+
+                const max = Math.max(...trendData, 1); // Avoid div by 0
+
+                return trendData.map((val, i) => (
+                  <div key={i} className="flex-1 bg-blue-400/20 rounded-t-sm flex items-end justify-center group relative">
+                    <div className="w-full bg-blue-400 rounded-t-sm transition-all" style={{ height: `${(val/max)*100}%`, minHeight: '4px' }} />
+                    <div className="absolute -top-6 bg-ink text-white text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                      {val}
+                    </div>
+                  </div>
+                ));
+              })()}
             </div>
           </div>
         </div>
