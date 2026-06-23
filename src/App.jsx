@@ -23,6 +23,7 @@ const CommandPalette = lazy(() => import("./components/ui/CommandPalette.jsx").t
 const Achievements = lazy(() => import("./pages/Achievements.jsx"));
 const Leaderboard = lazy(() => import("./pages/Leaderboard.jsx"));
 const DataManagement = lazy(() => import("./pages/DataManagement.jsx"));
+const EpicCalculator = lazy(() => import("./pages/EpicCalculator.jsx"));
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -55,6 +56,7 @@ export default function App() {
                 <Route path="/analytics" element={<ErrorBoundary><Analytics /></ErrorBoundary>} />
                 <Route path="/achievements" element={<Achievements />} />
                 <Route path="/leaderboard" element={<Leaderboard />} />
+                <Route path="/epic-calculator" element={<EpicCalculator />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/settings/data-management" element={<DataManagement />} />
                 <Route path="/post-loss-recovery" element={<PostLossRecovery />} />

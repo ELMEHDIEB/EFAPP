@@ -2,26 +2,26 @@ import { useState, useEffect, useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db.js";
 import { getNextGoal } from "../utils/goalEngine.js";
-import { getDisciplineScore, getDisciplineLabel } from "../scoreActions.js";
+import { getHealthScore } from "../utils/healthScore.js";
 import DataTable from "../components/ui/DataTable.jsx";
 
 export default function Leaderboard() {
   const accounts = useLiveQuery(() => db.accounts.toArray(), []);
-  const [disciplineData, setDisciplineData] = useState({});
+  const [healthData, setHealthData] = useState({});
   const [filterStatus, setFilterStatus] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Load discipline scores asynchronously
+  // Load health scores asynchronously
   useEffect(() => {
     if (!accounts || accounts.length === 0) return;
     let cancelled = false;
     async function loadScores() {
       const data = {};
       for (const acc of accounts) {
-        const result = await getDisciplineScore(acc.id);
+        const result = await getHealthScore(acc.id);
         data[acc.id] = result;
       }
-      if (!cancelled) setDisciplineData(data);
+      if (!cancelled) setHealthData(data);
     }
     loadScores();
     return () => { cancelled = true; };
@@ -33,8 +33,7 @@ export default function Leaderboard() {
     return accounts.map(acc => {
       const { progressPct, nextGoal } = getNextGoal(acc.currentCoins);
       const distanceTo900 = acc.currentCoins < 900 ? 900 - acc.currentCoins : 0;
-      const ds = disciplineData[acc.id] || { score: 100, isEvaluating: true };
-      const label = getDisciplineLabel(ds.score);
+      const hs = healthData[acc.id] || { score: 0, label: "Evaluating", breakdown: {} };
 
       return {
         id: acc.id,
@@ -42,19 +41,18 @@ export default function Leaderboard() {
         coins: acc.currentCoins,
         progressPct,
         distanceTo900,
-        disciplineScore: ds.score,
-        disciplineLabel: label,
-        isEvaluating: ds.isEvaluating,
+        healthScore: hs.score,
+        healthLabel: hs.label,
         groupTag: acc.groupTag
       };
     });
-  }, [accounts, disciplineData]);
+  }, [accounts, healthData]);
 
   // Filter
   const filtered = useMemo(() => {
     let result = rows;
     if (filterStatus !== "all") {
-      result = result.filter(r => r.disciplineLabel === filterStatus);
+      result = result.filter(r => r.healthLabel === filterStatus);
     }
     return result;
   }, [rows, filterStatus]);
@@ -71,7 +69,8 @@ export default function Leaderboard() {
     Elite: { bg: "bg-accent/10", text: "text-accent", border: "border-accent/20" },
     Good: { bg: "bg-white/5", text: "text-white", border: "border-white/10" },
     Average: { bg: "bg-warn/10", text: "text-warn", border: "border-warn/20" },
-    Risky: { bg: "bg-danger/10", text: "text-danger", border: "border-danger/20" }
+    Risky: { bg: "bg-danger/10", text: "text-danger", border: "border-danger/20" },
+    Evaluating: { bg: "bg-ink", text: "text-textdim", border: "border-white/5" }
   };
 
   const columns = [
@@ -126,15 +125,25 @@ export default function Leaderboard() {
       )
     },
     {
-      key: 'disciplineLabel',
+      key: 'healthScore',
+      label: 'Health Score',
+      align: 'right',
+      render: (row) => (
+        <span className={`font-bold font-mono ${row.healthScore >= 90 ? 'text-accent' : row.healthScore >= 75 ? 'text-white' : row.healthScore >= 50 ? 'text-warn' : 'text-danger'}`}>
+          {row.healthScore}
+        </span>
+      )
+    },
+    {
+      key: 'healthLabel',
       label: 'Statut',
-      sortValue: (row) => row.disciplineScore, // Sort status by underlying score
+      sortValue: (row) => row.healthScore, // Sort status by underlying score
       align: 'right',
       render: (row) => {
-        const colors = statusColors[row.disciplineLabel] || statusColors.Average;
+        const colors = statusColors[row.healthLabel] || statusColors.Evaluating;
         return (
           <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${colors.bg} ${colors.text} border ${colors.border}`}>
-            {row.disciplineLabel}
+            {row.healthLabel}
           </span>
         );
       }
