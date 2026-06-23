@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db.js";
 import { applyCoinChange } from "../accountActions.js";
@@ -6,6 +6,7 @@ import { useToast } from "../components/ui/ToastContext.jsx";
 import { useConfirm } from "../components/ui/ConfirmContext.jsx";
 import AccountHistory from "../components/AccountHistory.jsx";
 import BulkBilanImport from "../components/BulkBilanImport.jsx";
+import CommandCenter from "../components/CommandCenter.jsx";
 import { getNextGoal } from "../utils/goalEngine.js";
 import { getMotivationMessage } from "../utils/motivationEngine.js";
 import { getDisciplineScore, getDisciplineLabel } from "../scoreActions.js";
@@ -334,6 +335,8 @@ export default function BilanTracker() {
     }
   ];
 
+  const hasAccounts = accounts?.length > 0;
+
   return (
     <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500 pb-10">
       <header>
@@ -341,85 +344,106 @@ export default function BilanTracker() {
         <p className="text-textdim mt-1">Centre de contrôle principal — suivi comptable et gestion du patrimoine.</p>
       </header>
 
-      {/* HERO KPI SECTION */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="pro-card p-5 justify-between gap-3 bg-gradient-to-br from-panel to-ink border-accent/20">
-          <p className="text-[10px] font-bold text-accent uppercase tracking-widest">Total Coins</p>
-          <div>
-            <p className="text-3xl font-black tracking-tight text-white">{totalCoins.toLocaleString()}</p>
-            <p className="text-xs text-textdim font-medium">{accounts.length} comptes actifs</p>
+      {!hasAccounts ? (
+        <div className="flex flex-col items-center justify-center p-12 bg-ink border border-dashed border-white/10 rounded-2xl text-center h-[50vh]">
+          <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-4">
+            <svg className="w-8 h-8 text-textdim" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
           </div>
-        </div>
-        <div className="pro-card p-5 justify-between gap-3">
-          <p className="text-[10px] font-bold text-textdim uppercase tracking-widest">Comptes Actifs</p>
-          <div>
-            <p className="text-3xl font-black tracking-tight text-white">{accounts.length}</p>
-            <p className="text-xs text-textdim font-medium">dans le portefeuille</p>
-          </div>
-        </div>
-        <div className="pro-card p-5 justify-between gap-3">
-          <p className="text-[10px] font-bold text-textdim uppercase tracking-widest">Comptes ≥ 900</p>
-          <div>
-            <p className={`text-3xl font-black tracking-tight ${above900 > 0 ? 'text-accent' : 'text-warn'}`}>{above900}</p>
-            <p className="text-xs text-textdim font-medium">
-              {accounts.length > 0 ? `${Math.round((above900 / accounts.length) * 100)}% du portfolio` : "—"}
-            </p>
-          </div>
-        </div>
-        <div className="pro-card p-5 justify-between gap-3">
-          <p className="text-[10px] font-bold text-textdim uppercase tracking-widest">Progression Moyenne</p>
-          <div>
-            <p className={`text-3xl font-black tracking-tight ${avgProgress >= 100 ? 'text-accent' : avgProgress >= 50 ? 'text-white' : 'text-warn'}`}>{avgProgress}%</p>
-            <div className="w-full h-1.5 bg-ink rounded-full overflow-hidden mt-2">
-              <div
-                className={`h-full rounded-full transition-all duration-700 ${avgProgress >= 100 ? 'bg-accent' : avgProgress >= 50 ? 'bg-white' : 'bg-warn'}`}
-                style={{ width: `${Math.min(avgProgress, 100)}%` }}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* BULK IMPORT */}
-      <div>
-        <BulkBilanImport onComplete={() => setSnapshotData({})} />
-      </div>
-
-      {/* SNAPSHOT TABLE */}
-      <div className="space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-bold text-white">Gestion du Portefeuille</h2>
-            <p className="text-sm text-textdim">Suivez, mettez à jour et visualisez les performances de chaque compte.</p>
-          </div>
-          <button 
-            onClick={handleSaveBilan}
-            disabled={isSaving}
-            className="btn-primary py-2 px-4 whitespace-nowrap shadow-glow"
-          >
-            {isSaving ? "Sauvegarde..." : "Enregistrer Tout Le Bilan"}
+          <h2 className="text-xl font-bold text-white mb-2">Aucun compte disponible</h2>
+          <p className="text-sm text-textdim mb-6 max-w-sm">Créez votre premier compte pour commencer à suivre votre progression et vos bilans.</p>
+          <button onClick={() => window.location.href = '/accounts'} className="btn-primary py-2 px-6">
+            Créer un compte
           </button>
         </div>
+      ) : (
+        <>
+          {/* HERO KPI SECTION */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="pro-card p-5 justify-between gap-3 bg-gradient-to-br from-panel to-ink border-accent/20">
+              <p className="text-[10px] font-bold text-accent uppercase tracking-widest">Total Coins</p>
+              <div>
+                <p className="text-3xl font-black tracking-tight text-white">{totalCoins.toLocaleString()}</p>
+                <p className="text-xs text-textdim font-medium">{accounts.length} comptes actifs</p>
+              </div>
+            </div>
+            <div className="pro-card p-5 justify-between gap-3">
+              <p className="text-[10px] font-bold text-textdim uppercase tracking-widest">Comptes Actifs</p>
+              <div>
+                <p className="text-3xl font-black tracking-tight text-white">{accounts.length}</p>
+                <p className="text-xs text-textdim font-medium">dans le portefeuille</p>
+              </div>
+            </div>
+            <div className="pro-card p-5 justify-between gap-3">
+              <p className="text-[10px] font-bold text-textdim uppercase tracking-widest">Comptes ≥ 900</p>
+              <div>
+                <p className={`text-3xl font-black tracking-tight ${above900 > 0 ? 'text-accent' : 'text-warn'}`}>{above900}</p>
+                <p className="text-xs text-textdim font-medium">
+                  {accounts.length > 0 ? `${Math.round((above900 / accounts.length) * 100)}% du portfolio` : "—"}
+                </p>
+              </div>
+            </div>
+            <div className="pro-card p-5 justify-between gap-3">
+              <p className="text-[10px] font-bold text-textdim uppercase tracking-widest">Progression Moyenne</p>
+              <div>
+                <p className={`text-3xl font-black tracking-tight ${avgProgress >= 100 ? 'text-accent' : avgProgress >= 50 ? 'text-white' : 'text-warn'}`}>{avgProgress}%</p>
+                <div className="w-full h-1.5 bg-ink rounded-full overflow-hidden mt-2">
+                  <div
+                    className={`h-full rounded-full transition-all duration-700 ${avgProgress >= 100 ? 'bg-accent' : avgProgress >= 50 ? 'bg-white' : 'bg-warn'}`}
+                    style={{ width: `${Math.min(avgProgress, 100)}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
 
-        <DataTable 
-          columns={columns}
-          data={accounts}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          globalSearchFn={(row, q) => row.name.toLowerCase().includes(q) || (row.groupTag && row.groupTag.toLowerCase().includes(q))}
-          defaultSortKey="currentCoins"
-        />
-        {Object.keys(disciplineData).length > 0 && (
-          <p className="text-[10px] text-textdim pl-2">* Score en cours d'évaluation (nécessite au moins 3 spins sur 30 jours).</p>
-        )}
-      </div>
+          {/* COMMAND CENTER */}
+          <div className="mb-4">
+            <CommandCenter onComplete={() => setSnapshotData({})} />
+          </div>
 
-      {/* ═══════════════════════════════════════════════════════════ */}
-      {/* ACCOUNT HISTORY                                            */}
-      {/* ═══════════════════════════════════════════════════════════ */}
-      <div className="mt-2">
-        <AccountHistory />
-      </div>
+          {/* BULK IMPORT (DEPRECATED) */}
+          <div className="mb-8 opacity-70 grayscale-[50%] transition-opacity hover:opacity-100 hover:grayscale-0">
+            <p className="text-xs font-bold text-warn mb-2 uppercase tracking-widest text-center border-b border-warn/20 pb-1">Deprecated - Sera supprimé dans la V6</p>
+            <BulkBilanImport onComplete={() => setSnapshotData({})} />
+          </div>
+
+          {/* SNAPSHOT TABLE */}
+          <div className="space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-bold text-white">Gestion du Portefeuille</h2>
+                <p className="text-sm text-textdim">Suivez, mettez à jour et visualisez les performances de chaque compte.</p>
+              </div>
+              <button 
+                onClick={handleSaveBilan}
+                disabled={isSaving}
+                className="btn-primary py-2 px-4 whitespace-nowrap shadow-glow"
+              >
+                {isSaving ? "Sauvegarde..." : "Enregistrer Tout Le Bilan"}
+              </button>
+            </div>
+
+            <DataTable 
+              columns={columns}
+              data={accounts}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              globalSearchFn={(row, q) => row.name.toLowerCase().includes(q) || (row.groupTag && row.groupTag.toLowerCase().includes(q))}
+              defaultSortKey="currentCoins"
+            />
+            {Object.keys(disciplineData).length > 0 && (
+              <p className="text-[10px] text-textdim pl-2">* Score en cours d'évaluation (nécessite au moins 3 spins sur 30 jours).</p>
+            )}
+          </div>
+
+          {/* ═══════════════════════════════════════════════════════════ */}
+          {/* ACCOUNT HISTORY                                            */}
+          {/* ═══════════════════════════════════════════════════════════ */}
+          <div className="mt-2">
+            <AccountHistory />
+          </div>
+        </>
+      )}
     </div>
   );
 }

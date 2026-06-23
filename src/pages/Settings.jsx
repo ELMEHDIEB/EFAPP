@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { db } from "../db.js";
 import { useToast } from "../components/ui/ToastContext.jsx";
 import { useConfirm } from "../components/ui/ConfirmContext.jsx";
+import { sha256 } from "../utils/crypto.js";
 
 const TABLES = [
   "accounts",
@@ -74,14 +75,24 @@ export default function Settings() {
   const pinSetting = settings?.find(s => s.key === "pinLock");
   const hasPin = !!pinSetting?.value;
   const [pinInput, setPinInput] = useState("");
+  const [recoveryPhrase, setRecoveryPhrase] = useState("");
 
   async function savePin(e) {
     e.preventDefault();
     if (pinInput.trim().length < 4) {
       return toast("Le code PIN doit faire au moins 4 caractères.", "error");
     }
+    if (recoveryPhrase.trim().length < 8) {
+      return toast("La phrase de récupération doit faire au moins 8 caractères.", "error");
+    }
+    
+    const phraseHash = await sha256(recoveryPhrase.trim().toLowerCase());
+
     await db.settings.put({ key: "pinLock", value: pinInput.trim() });
+    await db.settings.put({ key: "recoveryHash", value: phraseHash });
+    
     setPinInput("");
+    setRecoveryPhrase("");
     toast("Code PIN configuré. L'application est désormais verrouillée.", "success");
   }
 
@@ -96,6 +107,7 @@ export default function Settings() {
 
     if (isConfirmed) {
       await db.settings.delete("pinLock");
+      await db.settings.delete("recoveryHash");
       toast("Code PIN retiré. L'application n'est plus verrouillée.", "success");
     }
   }
@@ -131,7 +143,7 @@ export default function Settings() {
           <form onSubmit={savePin} className="flex flex-col gap-4 p-5 bg-ink rounded-xl border border-white/5">
             <div>
               <p className="text-sm font-bold text-white mb-1">Activer le verrouillage par PIN</p>
-              <p className="text-xs text-textdim leading-relaxed">Protégez vos données comportementales avec un code PIN local.</p>
+              <p className="text-xs text-textdim leading-relaxed">Protégez vos données avec un code PIN et une phrase de récupération en cas d'oubli.</p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <input 
@@ -142,10 +154,20 @@ export default function Settings() {
                 className="input flex-1"
                 maxLength={10}
               />
-              <button type="submit" className="btn-primary">
-                Activer la protection
-              </button>
             </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-bold text-textdim uppercase tracking-wider">Recovery Phrase</label>
+              <input 
+                type="text" 
+                value={recoveryPhrase} 
+                onChange={e => setRecoveryPhrase(e.target.value)} 
+                placeholder="Ex: river orange planet eagle 42" 
+                className="input"
+              />
+            </div>
+            <button type="submit" className="btn-primary mt-2">
+              Activer la protection
+            </button>
           </form>
         )}
       </div>

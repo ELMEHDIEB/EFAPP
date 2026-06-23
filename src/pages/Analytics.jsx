@@ -6,9 +6,11 @@ import {
   PieChart, Pie, Cell, BarChart, Bar, Legend
 } from 'recharts';
 import { getNextGoal, getGoalDistribution } from "../utils/goalEngine.js";
-import { getDisciplineScore, getDisciplineLabel } from "../scoreActions.js";
+import { getHealthScore } from "../utils/healthScore.js";
 import ExportCenter from "../components/ExportCenter.jsx";
 import DataTable from "../components/ui/DataTable.jsx";
+import GoalRadar from "../components/GoalRadar.jsx";
+import MilestoneTimeline from "../components/MilestoneTimeline.jsx";
 
 // Couleurs de la charte graphique UI Pro Max
 const COLORS = ['#ffffff', '#888888', '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
@@ -16,7 +18,7 @@ const COLORS = ['#ffffff', '#888888', '#3b82f6', '#ef4444', '#10b981', '#f59e0b'
 export default function Analytics() {
   const accounts = useLiveQuery(() => db.accounts.toArray(), []);
   const coinLogs = useLiveQuery(() => db.coinLogs.toArray(), []);
-  const [disciplineData, setDisciplineData] = useState({});
+  const [healthData, setHealthData] = useState({});
 
   useEffect(() => {
     if (!accounts || accounts.length === 0) return;
@@ -24,10 +26,10 @@ export default function Analytics() {
     async function loadScores() {
       const data = {};
       for (const acc of accounts) {
-        const result = await getDisciplineScore(acc.id);
+        const result = await getHealthScore(acc.id);
         data[acc.id] = result;
       }
-      if (!cancelled) setDisciplineData(data);
+      if (!cancelled) setHealthData(data);
     }
     loadScores();
     return () => { cancelled = true; };
@@ -568,26 +570,24 @@ export default function Analytics() {
             </div>
           </div>
 
-          {/* Discipline Distribution */}
+          {/* Health Score Distribution */}
           <div className="pro-card p-5 justify-between gap-4 bg-panel">
             <p className="text-xs font-bold text-textdim uppercase tracking-wider flex items-center gap-2">
               <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>
-              Discipline Profile
+              Health Profile
             </p>
             <div>
               {(() => {
-                if (Object.keys(disciplineData).length === 0) return <p className="text-xs text-textdim">Chargement...</p>;
+                if (Object.keys(healthData).length === 0) return <p className="text-xs text-textdim">Chargement...</p>;
                 
                 const dist = { Elite: 0, Good: 0, Average: 0, Risky: 0 };
                 let total = 0;
-                Object.values(disciplineData).forEach(ds => {
-                  if (!ds.isEvaluating) {
-                    dist[getDisciplineLabel(ds.score)]++;
-                    total++;
-                  }
+                Object.values(healthData).forEach(hs => {
+                  dist[hs.label]++;
+                  total++;
                 });
 
-                if (total === 0) return <p className="text-xs text-textdim">Pas assez de données (3+ spins requis)</p>;
+                if (total === 0) return <p className="text-xs text-textdim">Pas de données</p>;
 
                 return (
                   <div className="flex w-full h-3 rounded-full overflow-hidden mb-2 bg-ink">
