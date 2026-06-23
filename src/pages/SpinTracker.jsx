@@ -393,6 +393,12 @@ function SpinWizard({ accounts, onComplete, onCancel }) {
                   Il vous manquera {missingTo900} coins pour atteindre les 900.
                 </p>
               )}
+              {/* Anti-FOMO contextual text */}
+              <p className={`text-xs font-medium mt-3 ${isDangerPostSpin ? 'text-danger' : 'text-accent'}`}>
+                {isDangerPostSpin 
+                  ? "⚠ Risque élevé de retomber sous l'objectif" 
+                  : "Impact faible sur l'objectif"}
+              </p>
               {weeklyLimit > 0 && (
                 <div className="mt-4 pt-4 border-t border-border">
                   <p className="text-xs font-medium text-textdim mb-1 uppercase tracking-wider">Limite hebdomadaire ({weeklyLimit})</p>

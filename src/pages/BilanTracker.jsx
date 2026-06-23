@@ -9,7 +9,7 @@ import BulkBilanImport from "../components/BulkBilanImport.jsx";
 import { getNextGoal } from "../utils/goalEngine.js";
 
 export default function BilanTracker() {
-  const { showToast } = useToast();
+  const showToast = useToast();
   const confirm = useConfirm();
   
   const accounts = useLiveQuery(() => db.accounts.toArray(), []);
@@ -132,6 +132,7 @@ export default function BilanTracker() {
                 <th className="pb-3 font-medium text-right">Nouveau Solde</th>
                 <th className="pb-3 font-medium text-right">Variation</th>
                 <th className="pb-3 font-medium text-right">Progression (900)</th>
+                <th className="pb-3 font-medium text-center">Ajout rapide</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -186,12 +187,32 @@ export default function BilanTracker() {
                         </div>
                       </div>
                     </td>
+                    <td className="py-4">
+                      <div className="flex gap-1.5 justify-center">
+                        {[25, 50, 100, 250].map(amount => (
+                          <button
+                            key={amount}
+                            onClick={async () => {
+                              try {
+                                await applyCoinChange(account.id, { action: "ADD", amount, reason: "Ajout rapide" });
+                                showToast(`+${amount} coins ajoutés à ${account.name}`, 'success');
+                              } catch (err) {
+                                showToast(err.message, 'error');
+                              }
+                            }}
+                            className="btn-secondary px-1.5 py-1 text-[10px] font-bold"
+                          >
+                            +{amount}
+                          </button>
+                        ))}
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
               {sortedAccounts.length === 0 && (
                 <tr>
-                  <td colSpan="5" className="py-8 text-center text-textdim">
+                  <td colSpan="6" className="py-8 text-center text-textdim">
                     Aucun compte disponible. Veuillez en créer un dans l'onglet Comptes.
                   </td>
                 </tr>

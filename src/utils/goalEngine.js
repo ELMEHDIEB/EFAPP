@@ -76,3 +76,63 @@ export function getGoalDistribution(accounts) {
 
   return distribution;
 }
+
+/**
+ * Computes forecast data for a specific account based on coinLogs.
+ * Returns average daily gains over 7d, 30d, 60d windows, 
+ * plus an estimated goal date.
+ * If delta <= 0, returns "Pas de progression actuellement" instead of a date.
+ * 
+ * @param {Array} coinLogs - All coin logs (pre-filtered or full)
+ * @param {object} account - The account object
+ * @returns {{ forecast7d: number, forecast30d: number, forecast60d: number, estimatedGoalDate: string }}
+ */
+export function getForecast(coinLogs, account) {
+  if (!coinLogs || !account) {
+    return { forecast7d: 0, forecast30d: 0, forecast60d: 0, estimatedGoalDate: "Pas assez de données" };
+  }
+
+  const accountLogs = coinLogs
+    .filter(l => l.accountId === account.id)
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  if (accountLogs.length === 0) {
+    return { forecast7d: 0, forecast30d: 0, forecast60d: 0, estimatedGoalDate: "Pas assez de données" };
+  }
+
+  const now = new Date();
+  const msPerDay = 86400000;
+
+  function avgDailyGain(days) {
+    const cutoff = new Date(now.getTime() - days * msPerDay).toISOString().slice(0, 10);
+    const recentLogs = accountLogs.filter(l => l.date >= cutoff);
+    if (recentLogs.length === 0) return 0;
+
+    let totalDelta = 0;
+    recentLogs.forEach(log => {
+      totalDelta += (log.newBalance - log.previousBalance);
+    });
+
+    return totalDelta / days;
+  }
+
+  const forecast7d = Math.round(avgDailyGain(7) * 100) / 100;
+  const forecast30d = Math.round(avgDailyGain(30) * 100) / 100;
+  const forecast60d = Math.round(avgDailyGain(60) * 100) / 100;
+
+  // Estimate goal date using 30d average (most stable)
+  const { nextGoal, remainingCoins } = getNextGoal(account.currentCoins);
+  let estimatedGoalDate = "Pas de progression actuellement";
+
+  const bestAvg = forecast30d > 0 ? forecast30d : (forecast7d > 0 ? forecast7d : forecast60d);
+
+  if (bestAvg > 0 && remainingCoins > 0) {
+    const daysToGoal = Math.ceil(remainingCoins / bestAvg);
+    const goalDate = new Date(now.getTime() + daysToGoal * msPerDay);
+    estimatedGoalDate = goalDate.toISOString().slice(0, 10);
+  } else if (remainingCoins <= 0) {
+    estimatedGoalDate = "Objectif atteint";
+  }
+
+  return { forecast7d, forecast30d, forecast60d, estimatedGoalDate };
+}

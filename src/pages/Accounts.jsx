@@ -94,6 +94,25 @@ export default function Accounts() {
                   </p>
                   <p className="text-[10px] font-mono text-textdim font-bold">{pct}%</p>
                 </div>
+                {/* Quick Coin Actions */}
+                <div className="flex gap-1.5 mt-3">
+                  {[25, 50, 100, 250].map(amount => (
+                    <button
+                      key={amount}
+                      onClick={async () => {
+                        try {
+                          await applyCoinChange(acc.id, { action: "ADD", amount, reason: "Ajout rapide" });
+                          toast(`+${amount} coins ajoutés à ${acc.name}`, 'success');
+                        } catch (err) {
+                          toast(err.message, 'error');
+                        }
+                      }}
+                      className="btn-secondary px-2 py-1 text-[10px] font-bold tracking-wide"
+                    >
+                      +{amount}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="flex gap-2 shrink-0 md:ml-4">
