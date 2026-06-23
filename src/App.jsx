@@ -22,6 +22,7 @@ const BilanTracker = lazy(() => import("./pages/BilanTracker.jsx"));
 const CommandPalette = lazy(() => import("./components/ui/CommandPalette.jsx").then(m => ({ default: m.CommandPalette })));
 const Achievements = lazy(() => import("./pages/Achievements.jsx"));
 const Leaderboard = lazy(() => import("./pages/Leaderboard.jsx"));
+const DataManagement = lazy(() => import("./pages/DataManagement.jsx"));
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -55,6 +56,7 @@ export default function App() {
                 <Route path="/achievements" element={<Achievements />} />
                 <Route path="/leaderboard" element={<Leaderboard />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/settings/data-management" element={<DataManagement />} />
                 <Route path="/post-loss-recovery" element={<PostLossRecovery />} />
               </Routes>
             </Suspense>

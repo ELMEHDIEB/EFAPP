@@ -8,6 +8,8 @@ import AccountHistory from "../components/AccountHistory.jsx";
 import BulkBilanImport from "../components/BulkBilanImport.jsx";
 import { getNextGoal } from "../utils/goalEngine.js";
 import { getMotivationMessage } from "../utils/motivationEngine.js";
+import { getDisciplineScore, getDisciplineLabel } from "../scoreActions.js";
+import DataTable from "../components/ui/DataTable.jsx";
 
 export default function BilanTracker() {
   const showToast = useToast();
@@ -18,6 +20,24 @@ export default function BilanTracker() {
   const [snapshotData, setSnapshotData] = useState({});
   const [isSaving, setIsSaving] = useState(false);
   const [quickAddAccount, setQuickAddAccount] = useState("");
+  const [disciplineData, setDisciplineData] = useState({});
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Load discipline scores
+  useMemo(() => {
+    if (!accounts || accounts.length === 0) return;
+    let cancelled = false;
+    async function loadScores() {
+      const data = {};
+      for (const acc of accounts) {
+        const result = await getDisciplineScore(acc.id);
+        data[acc.id] = result;
+      }
+      if (!cancelled) setDisciplineData(data);
+    }
+    loadScores();
+    return () => { cancelled = true; };
+  }, [accounts]);
 
   // Initialize snapshot data when accounts load
   useMemo(() => {
@@ -130,6 +150,190 @@ export default function BilanTracker() {
   const weeklyLogs = coinLogs.filter(l => l.date >= sevenDaysAgo);
   const weeklyDelta = weeklyLogs.reduce((sum, l) => sum + (l.newBalance - l.previousBalance), 0);
 
+  const statusColors = {
+    Elite: { bg: "bg-accent/10", text: "text-accent", border: "border-accent/20" },
+    Good: { bg: "bg-white/5", text: "text-white", border: "border-white/10" },
+    Average: { bg: "bg-warn/10", text: "text-warn", border: "border-warn/20" },
+    Risky: { bg: "bg-danger/10", text: "text-danger", border: "border-danger/20" }
+  };
+
+  const columns = [
+    {
+      key: 'rank',
+      label: 'Rang',
+      sortable: false,
+      align: 'center',
+      render: (row, i) => (
+        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold mx-auto ${i < 3 ? 'bg-white/10 text-white' : 'text-textdim'}`}>
+          {i + 1}
+        </div>
+      )
+    },
+    {
+      key: 'name',
+      label: 'Compte',
+      sortValue: (row) => row.name.toLowerCase(),
+      render: (row) => {
+        const { progressPct } = getNextGoal(row.currentCoins);
+        return (
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${progressPct >= 100 ? 'bg-accent' : 'bg-warn'}`}></div>
+            <span className="font-semibold text-white">{row.name}</span>
+            {row.groupTag && (
+              <span className="text-[9px] uppercase tracking-widest text-textdim font-semibold bg-white/5 rounded px-1.5 py-0.5">{row.groupTag}</span>
+            )}
+          </div>
+        );
+      }
+    },
+    {
+      key: 'currentCoins',
+      label: 'Coins Actuels',
+      align: 'right',
+      render: (row) => <span className={`font-bold ${row.currentCoins >= 900 ? 'text-accent' : 'text-textdim'}`}>{row.currentCoins.toLocaleString()}</span>
+    },
+    {
+      key: 'newBalance',
+      label: 'Nouveau Solde',
+      sortable: false,
+      align: 'right',
+      render: (row) => {
+        const { diff } = calculateVariation(row.id);
+        const isPositive = diff > 0;
+        return (
+          <div className="flex items-center justify-end gap-2">
+            <input 
+              type="number"
+              min="0"
+              value={snapshotData[row.id] ?? row.currentCoins}
+              onChange={(e) => handleValueChange(row.id, e.target.value)}
+              className="input w-20 text-right font-medium text-white p-1 text-sm"
+            />
+            {diff !== 0 && (
+              <span className={`text-xs font-medium w-8 text-left ${isPositive ? "text-accent" : "text-danger"}`}>
+                {isPositive ? "+" : ""}{diff}
+              </span>
+            )}
+          </div>
+        )
+      }
+    },
+    {
+      key: 'progressPct',
+      label: 'Progression %',
+      sortValue: (row) => getNextGoal(row.currentCoins).progressPct,
+      align: 'right',
+      render: (row) => {
+        const { progressPct } = getNextGoal(row.currentCoins);
+        return (
+          <div className="flex items-center justify-end gap-2">
+            <div className="w-16 h-1.5 bg-ink rounded-full overflow-hidden">
+              <div 
+                className={`h-full rounded-full transition-all duration-500 ${progressPct >= 100 ? 'bg-accent' : progressPct >= 50 ? 'bg-warn' : 'bg-danger'}`}
+                style={{ width: `${Math.min(progressPct, 100)}%` }}
+              />
+            </div>
+            <span className="text-[10px] w-6 text-textdim font-mono">{progressPct}%</span>
+          </div>
+        );
+      }
+    },
+    {
+      key: 'distanceTo900',
+      label: 'Distance à 900',
+      sortValue: (row) => row.currentCoins < 900 ? 900 - row.currentCoins : 0,
+      align: 'right',
+      render: (row) => {
+        const d = row.currentCoins < 900 ? 900 - row.currentCoins : 0;
+        if (d > 0) return <span className="text-warn font-medium">{d}</span>;
+        return <span className="text-accent font-medium">✓</span>;
+      }
+    },
+    {
+      key: 'disciplineScore',
+      label: 'Discipline',
+      align: 'center',
+      sortValue: (row) => (disciplineData[row.id] || { score: 100 }).score,
+      render: (row) => {
+        const ds = disciplineData[row.id] || { score: 100, isEvaluating: true };
+        const label = getDisciplineLabel(ds.score);
+        const colors = statusColors[label] || statusColors.Average;
+        return (
+          <div className="flex flex-col items-center gap-1">
+            <div className="flex items-center gap-1">
+              <span className="font-bold text-white">{ds.score}</span>
+              {ds.isEvaluating && <span className="text-textdim text-[10px]">*</span>}
+            </div>
+            <span className={`px-1.5 py-[1px] rounded text-[9px] font-bold uppercase tracking-wider ${colors.bg} ${colors.text} border ${colors.border}`}>
+              {label}
+            </span>
+          </div>
+        )
+      }
+    },
+    {
+      key: 'quickAdd',
+      label: 'Actions Rapides',
+      sortable: false,
+      align: 'center',
+      render: (row) => (
+        <div className="flex gap-1.5 justify-center">
+          {[25, 50, 100, 250].map(amount => (
+            <button
+              key={amount}
+              onClick={async () => {
+                try {
+                  await applyCoinChange(row.id, { action: "ADD", amount, reason: "Ajout rapide" });
+                  showToast(`+${amount} coins ajoutés à ${row.name}`, 'success');
+                } catch (err) {
+                  showToast(err.message, 'error');
+                }
+              }}
+              className="btn-secondary px-1.5 py-1 text-[10px] font-bold"
+            >
+              +{amount}
+            </button>
+          ))}
+        </div>
+      )
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      sortable: false,
+      align: 'center',
+      render: (row) => {
+        const { diff } = calculateVariation(row.id);
+        if (diff !== 0) {
+          return (
+            <button
+              onClick={async () => {
+                setIsSaving(true);
+                try {
+                  await applyCoinChange(row.id, {
+                    action: "SET_BALANCE",
+                    reason: "Bilan Snapshot",
+                    amount: Number(snapshotData[row.id])
+                  });
+                  showToast("Compte mis à jour avec succès !", "success");
+                } catch (err) {
+                  showToast("Erreur: " + err.message, "error");
+                } finally {
+                  setIsSaving(false);
+                }
+              }}
+              disabled={isSaving}
+              className="btn-primary px-2 py-1 text-[10px]"
+            >
+              Sauver
+            </button>
+          );
+        }
+        return <span className="text-textdim text-[10px]">—</span>;
+      }
+    }
+  ];
+
   return (
     <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500 pb-10">
       <header>
@@ -137,9 +341,7 @@ export default function BilanTracker() {
         <p className="text-textdim mt-1">Centre de contrôle principal — suivi comptable et gestion du patrimoine.</p>
       </header>
 
-      {/* ═══════════════════════════════════════════════════════════ */}
-      {/* HERO KPI SECTION                                           */}
-      {/* ═══════════════════════════════════════════════════════════ */}
+      {/* HERO KPI SECTION */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="pro-card p-5 justify-between gap-3 bg-gradient-to-br from-panel to-ink border-accent/20">
           <p className="text-[10px] font-bold text-accent uppercase tracking-widest">Total Coins</p>
@@ -178,266 +380,38 @@ export default function BilanTracker() {
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════ */}
-      {/* QUICK ADD CENTER                                           */}
-      {/* ═══════════════════════════════════════════════════════════ */}
-      <div className="pro-card p-5 bg-gradient-to-r from-panel to-panel2">
-        <div className="flex flex-col md:flex-row md:items-center gap-4">
-          <div className="flex-1 min-w-0">
-            <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-1">Quick Add Center</h2>
-            <p className="text-xs text-textdim">Ajout rapide de coins sur n'importe quel compte.</p>
-          </div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <select
-              value={quickAddAccount}
-              onChange={e => setQuickAddAccount(Number(e.target.value))}
-              className="input py-2 px-3 text-sm min-w-[140px]"
-            >
-              {accounts.map(acc => (
-                <option key={acc.id} value={acc.id}>
-                  {acc.name} ({acc.currentCoins})
-                </option>
-              ))}
-            </select>
-            <div className="flex gap-2">
-              {[25, 50, 100, 250].map(amount => (
-                <button
-                  key={amount}
-                  onClick={() => handleQuickAdd(amount)}
-                  className="btn-secondary px-4 py-2.5 text-sm font-bold hover:bg-accent hover:text-white hover:border-accent transition-all"
-                >
-                  +{amount}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ═══════════════════════════════════════════════════════════ */}
-      {/* SMART INSIGHTS                                             */}
-      {/* ═══════════════════════════════════════════════════════════ */}
-      {accounts.length > 0 && (
-        <div className="pro-card p-5">
-          <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
-            <svg className="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-            Smart Insights
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {above900 > 0 && (
-              <div className="bg-accent/5 border border-accent/15 rounded-lg p-3 flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center shrink-0 mt-0.5">
-                  <svg className="w-4 h-4 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-accent">{above900} compte(s) ≥ 900</p>
-                  <p className="text-xs text-textdim mt-0.5">Objectif atteint — prêt(s) pour le pass.</p>
-                </div>
-              </div>
-            )}
-            {closeToGoal.length > 0 && (
-              <div className="bg-warn/5 border border-warn/15 rounded-lg p-3 flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-warn/10 flex items-center justify-center shrink-0 mt-0.5">
-                  <svg className="w-4 h-4 text-warn" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-warn">{closeToGoal.length} compte(s) à &lt;100 coins</p>
-                  <p className="text-xs text-textdim mt-0.5">Très proche de l'objectif 900.</p>
-                </div>
-              </div>
-            )}
-            <div className={`border rounded-lg p-3 flex items-start gap-3 ${weeklyDelta > 0 ? 'bg-accent/5 border-accent/15' : weeklyDelta < 0 ? 'bg-danger/5 border-danger/15' : 'bg-white/5 border-white/10'}`}>
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${weeklyDelta > 0 ? 'bg-accent/10' : weeklyDelta < 0 ? 'bg-danger/10' : 'bg-white/5'}`}>
-                <svg className={`w-4 h-4 ${weeklyDelta > 0 ? 'text-accent' : weeklyDelta < 0 ? 'text-danger' : 'text-textdim'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={weeklyDelta >= 0 ? "M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" : "M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"} />
-                </svg>
-              </div>
-              <div>
-                <p className={`text-sm font-semibold ${weeklyDelta > 0 ? 'text-accent' : weeklyDelta < 0 ? 'text-danger' : 'text-textdim'}`}>
-                  {weeklyDelta > 0 ? `+${weeklyDelta}` : weeklyDelta} coins cette semaine
-                </p>
-                <p className="text-xs text-textdim mt-0.5">
-                  {weeklyDelta > 0 ? "Progression positive." : weeklyDelta < 0 ? "Tendance en baisse." : "Aucun mouvement cette semaine."}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ═══════════════════════════════════════════════════════════ */}
-      {/* GOAL PROGRESS CENTER                                       */}
-      {/* ═══════════════════════════════════════════════════════════ */}
-      <div className="pro-card p-6">
-        <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-5">Goal Progress Center</h2>
-        <div className="space-y-4">
-          {sortedAccounts.map(acc => {
-            const { progressPct, remainingCoins, nextGoal } = getNextGoal(acc.currentCoins);
-            const motivation = getMotivationMessage(acc, accounts, coinLogs);
-            let barColor = "bg-danger";
-            let textColor = "text-danger";
-            if (progressPct >= 100) { barColor = "bg-accent"; textColor = "text-accent"; }
-            else if (progressPct >= 75) { barColor = "bg-accent"; textColor = "text-accent"; }
-            else if (progressPct >= 50) { barColor = "bg-warn"; textColor = "text-warn"; }
-
-            return (
-              <div key={acc.id} className="bg-ink rounded-xl p-4 border border-border hover:border-white/10 transition-colors">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2.5 h-2.5 rounded-full ${progressPct >= 100 ? 'bg-accent' : 'bg-warn'}`} />
-                    <span className="text-sm font-bold text-white">{acc.name}</span>
-                    {acc.groupTag && (
-                      <span className="text-[9px] uppercase tracking-widest text-textdim font-semibold bg-white/5 rounded px-1.5 py-0.5">{acc.groupTag}</span>
-                    )}
-                  </div>
-                  <span className={`text-sm font-black ${textColor}`}>{progressPct}%</span>
-                </div>
-                <div className="h-2.5 bg-panel2 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-700 ${barColor}`}
-                    style={{ width: `${Math.min(progressPct, 100)}%` }}
-                  />
-                </div>
-                <div className="flex items-center justify-between mt-2">
-                  <span className="text-xs text-textdim">
-                    <span className="text-white font-semibold">{acc.currentCoins.toLocaleString()}</span> / {nextGoal.toLocaleString()} coins
-                  </span>
-                  <span className="text-[10px] text-textdim">
-                    {remainingCoins > 0 ? `${remainingCoins} restants` : "Objectif atteint"}
-                  </span>
-                </div>
-                {/* Motivation message */}
-                <p className={`text-[11px] mt-2 font-medium ${motivation.type === 'success' ? 'text-accent' : motivation.type === 'warn' ? 'text-warn' : 'text-textdim'}`}>
-                  {motivation.message}
-                </p>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ═══════════════════════════════════════════════════════════ */}
-      {/* BULK IMPORT                                                */}
-      {/* ═══════════════════════════════════════════════════════════ */}
+      {/* BULK IMPORT */}
       <div>
         <BulkBilanImport onComplete={() => setSnapshotData({})} />
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════ */}
-      {/* SNAPSHOT TABLE                                             */}
-      {/* ═══════════════════════════════════════════════════════════ */}
-      <div className="pro-card p-6 bg-panel">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+      {/* SNAPSHOT TABLE */}
+      <div className="space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 className="text-lg font-bold text-white">Snapshot Manuel</h2>
-            <p className="text-sm text-textdim">Saisissez individuellement les nouveaux soldes.</p>
+            <h2 className="text-lg font-bold text-white">Gestion du Portefeuille</h2>
+            <p className="text-sm text-textdim">Suivez, mettez à jour et visualisez les performances de chaque compte.</p>
           </div>
           <button 
             onClick={handleSaveBilan}
             disabled={isSaving}
-            className="btn-primary py-2 px-4 whitespace-nowrap"
+            className="btn-primary py-2 px-4 whitespace-nowrap shadow-glow"
           >
-            {isSaving ? "Sauvegarde..." : "Enregistrer Snapshot Manuel"}
+            {isSaving ? "Sauvegarde..." : "Enregistrer Tout Le Bilan"}
           </button>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm whitespace-nowrap">
-            <thead>
-              <tr className="border-b border-border text-textdim">
-                <th className="pb-3 font-medium">Compte</th>
-                <th className="pb-3 font-medium text-right">Ancien Solde</th>
-                <th className="pb-3 font-medium text-right">Nouveau Solde</th>
-                <th className="pb-3 font-medium text-right">Variation</th>
-                <th className="pb-3 font-medium text-right">Progression</th>
-                <th className="pb-3 font-medium text-center">Ajout rapide</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {sortedAccounts.map(account => {
-                const { diff, pct } = calculateVariation(account.id);
-                const isPositive = diff > 0;
-                const { currentTier, nextGoal, progressPct } = getNextGoal(account.currentCoins);
-
-                return (
-                  <tr key={account.id} className="group hover:bg-white/[0.02] transition-colors">
-                    <td className="py-4">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${progressPct >= 100 ? 'bg-accent' : 'bg-warn'}`}></div>
-                        <span className="font-semibold text-white">{account.name}</span>
-                      </div>
-                    </td>
-                    <td className="py-4 text-right text-textdim">
-                      {account.currentCoins.toLocaleString()}
-                    </td>
-                    <td className="py-4 text-right">
-                      <input 
-                        type="number"
-                        min="0"
-                        value={snapshotData[account.id] ?? account.currentCoins}
-                        onChange={(e) => handleValueChange(account.id, e.target.value)}
-                        className="input w-24 text-right font-medium text-white p-1.5"
-                      />
-                    </td>
-                    <td className="py-4 text-right font-medium">
-                      {diff === 0 ? (
-                        <span className="text-textdim">-</span>
-                      ) : (
-                        <span className={isPositive ? "text-accent" : "text-danger"}>
-                          {isPositive ? "+" : ""}{diff} ({isPositive ? "+" : ""}{pct}%)
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-4">
-                      <div className="flex flex-col items-end gap-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-textdim">Tier {currentTier}</span>
-                          <span className="text-xs font-bold text-white">Goal {nextGoal}</span>
-                        </div>
-                        <div className="flex items-center justify-end gap-3 w-full">
-                          <span className="text-textdim text-[10px] w-6 text-right">{progressPct}%</span>
-                          <div className="w-24 h-1.5 bg-ink rounded-full overflow-hidden">
-                            <div 
-                              className={`h-full rounded-full transition-all duration-500 ${progressPct >= 100 ? 'bg-accent' : 'bg-white'}`}
-                              style={{ width: `${progressPct}%` }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-4">
-                      <div className="flex gap-1.5 justify-center">
-                        {[25, 50, 100, 250].map(amount => (
-                          <button
-                            key={amount}
-                            onClick={async () => {
-                              try {
-                                await applyCoinChange(account.id, { action: "ADD", amount, reason: "Ajout rapide" });
-                                showToast(`+${amount} coins ajoutés à ${account.name}`, 'success');
-                              } catch (err) {
-                                showToast(err.message, 'error');
-                              }
-                            }}
-                            className="btn-secondary px-1.5 py-1 text-[10px] font-bold"
-                          >
-                            +{amount}
-                          </button>
-                        ))}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-              {sortedAccounts.length === 0 && (
-                <tr>
-                  <td colSpan="6" className="py-8 text-center text-textdim">
-                    Aucun compte disponible. Veuillez en créer un dans l'onglet Comptes.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <DataTable 
+          columns={columns}
+          data={accounts}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          globalSearchFn={(row, q) => row.name.toLowerCase().includes(q) || (row.groupTag && row.groupTag.toLowerCase().includes(q))}
+          defaultSortKey="currentCoins"
+        />
+        {Object.keys(disciplineData).length > 0 && (
+          <p className="text-[10px] text-textdim pl-2">* Score en cours d'évaluation (nécessite au moins 3 spins sur 30 jours).</p>
+        )}
       </div>
 
       {/* ═══════════════════════════════════════════════════════════ */}

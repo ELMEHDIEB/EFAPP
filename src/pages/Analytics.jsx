@@ -8,6 +8,7 @@ import {
 import { getNextGoal, getGoalDistribution } from "../utils/goalEngine.js";
 import { getDisciplineScore, getDisciplineLabel } from "../scoreActions.js";
 import ExportCenter from "../components/ExportCenter.jsx";
+import DataTable from "../components/ui/DataTable.jsx";
 
 // Couleurs de la charte graphique UI Pro Max
 const COLORS = ['#ffffff', '#888888', '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
@@ -265,59 +266,83 @@ export default function Analytics() {
             <h2 className="pro-heading">Bilan Report View</h2>
             <ExportCenter reportTable={reportTable} />
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm whitespace-nowrap">
-              <thead>
-                <tr className="border-b border-border text-textdim">
-                  <th className="pb-3 font-medium w-12">#</th>
-                  <th className="pb-3 font-medium">Compte</th>
-                  <th className="pb-3 font-medium text-right">Ancien Solde</th>
-                  <th className="pb-3 font-medium text-right">Actuel</th>
-                  <th className="pb-3 font-medium text-right">Variation</th>
-                  <th className="pb-3 font-medium text-center">Objectif (900)</th>
-                  <th className="pb-3 font-medium text-right">Statut</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {reportTable.map((row) => (
-                  <tr key={row.name} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="py-3 font-bold text-textdim">{row.rank}</td>
-                    <td className="py-3 font-bold text-white">{row.name}</td>
-                    <td className="py-3 text-right text-textdim">{row.previousCoins}</td>
-                    <td className="py-3 text-right text-white font-medium">{row.currentCoins}</td>
-                    <td className="py-3 text-right font-medium">
-                      {row.variation === 0 ? (
-                        <span className="text-textdim">-</span>
-                      ) : (
-                        <span className={row.variation > 0 ? "text-accent" : "text-red-400"}>
-                          {row.variation > 0 ? "+" : ""}{row.variation} ({row.variation > 0 ? "+" : ""}{row.variationPct}%)
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="w-16 h-1.5 bg-ink rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full rounded-full ${row.goalPct >= 100 ? 'bg-accent' : 'bg-white'}`}
-                            style={{ width: `${row.goalPct}%` }}
-                          />
-                        </div>
-                        <span className="text-[10px] w-6">{row.goalPct}%</span>
-                      </div>
-                    </td>
-                    <td className="py-3 text-right">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                        row.status === "Prêt" ? "bg-accent/10 text-accent border border-accent/20" : 
-                        row.status === "Proche" ? "bg-warn/10 text-warn border border-warn/20" : 
-                        "bg-white/5 text-textdim border border-white/10"
-                      }`}>
-                        {row.status}
+          <div className="w-full">
+            <DataTable 
+              columns={[
+                {
+                  key: 'rank',
+                  label: '#',
+                  sortable: false,
+                  align: 'left',
+                  render: (row) => <span className="font-bold text-textdim">{row.rank}</span>
+                },
+                {
+                  key: 'name',
+                  label: 'Compte',
+                  sortValue: (row) => row.name.toLowerCase(),
+                  render: (row) => <span className="font-bold text-white">{row.name}</span>
+                },
+                {
+                  key: 'previousCoins',
+                  label: 'Ancien Solde',
+                  align: 'right',
+                  render: (row) => <span className="text-textdim">{row.previousCoins}</span>
+                },
+                {
+                  key: 'currentCoins',
+                  label: 'Actuel',
+                  align: 'right',
+                  render: (row) => <span className="text-white font-medium">{row.currentCoins}</span>
+                },
+                {
+                  key: 'variation',
+                  label: 'Variation',
+                  align: 'right',
+                  render: (row) => {
+                    if (row.variation === 0) return <span className="text-textdim">-</span>;
+                    const isPos = row.variation > 0;
+                    return (
+                      <span className={isPos ? "text-accent" : "text-red-400"}>
+                        {isPos ? "+" : ""}{row.variation} ({isPos ? "+" : ""}{row.variationPct}%)
                       </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    );
+                  }
+                },
+                {
+                  key: 'goalPct',
+                  label: 'Objectif (900)',
+                  align: 'center',
+                  render: (row) => (
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-16 h-1.5 bg-ink rounded-full overflow-hidden">
+                        <div 
+                          className={`h-full rounded-full ${row.goalPct >= 100 ? 'bg-accent' : 'bg-white'}`}
+                          style={{ width: `${Math.min(row.goalPct, 100)}%` }}
+                        />
+                      </div>
+                      <span className="text-[10px] w-6">{row.goalPct}%</span>
+                    </div>
+                  )
+                },
+                {
+                  key: 'status',
+                  label: 'Statut',
+                  align: 'right',
+                  sortValue: (row) => row.goalPct,
+                  render: (row) => (
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                      row.status === "Prêt" ? "bg-accent/10 text-accent border border-accent/20" : 
+                      row.status === "Proche" ? "bg-warn/10 text-warn border border-warn/20" : 
+                      "bg-white/5 text-textdim border border-white/10"
+                    }`}>
+                      {row.status}
+                    </span>
+                  )
+                }
+              ]}
+              data={reportTable}
+              defaultSortKey="currentCoins"
+            />
           </div>
         </div>
       </div>
