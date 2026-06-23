@@ -105,3 +105,14 @@ export async function getGlobalDisciplineScore() {
   if (evaluatedCount === 0) return { score: 100, isEvaluating: true };
   return { score: Math.round(totalScore / evaluatedCount), isEvaluating: false };
 }
+
+/**
+ * Returns a human-readable label for a discipline score.
+ * Display only — no logic change.
+ */
+export function getDisciplineLabel(score) {
+  if (score >= 90) return "Elite";
+  if (score >= 70) return "Good";
+  if (score >= 50) return "Average";
+  return "Risky";
+}

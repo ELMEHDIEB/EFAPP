@@ -7,6 +7,7 @@ import { ToastProvider } from "./components/ui/ToastContext.jsx";
 import { ConfirmProvider } from "./components/ui/ConfirmContext.jsx";
 
 import Sidebar from "./components/Sidebar.jsx";
+import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Accounts from "./pages/Accounts.jsx";
 import SpinTracker from "./pages/SpinTracker.jsx";
@@ -48,7 +49,7 @@ export default function App() {
                 <Route path="/accounts" element={<Accounts />} />
                 <Route path="/spin-tracker" element={<SpinTracker />} />
                 <Route path="/journal" element={<EmotionalJournal />} />
-                <Route path="/analytics" element={<Analytics />} />
+                <Route path="/analytics" element={<ErrorBoundary><Analytics /></ErrorBoundary>} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/post-loss-recovery" element={<PostLossRecovery />} />
               </Routes>

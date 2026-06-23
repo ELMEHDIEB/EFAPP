@@ -15,9 +15,9 @@ export default function Analytics() {
   const accounts = useLiveQuery(() => db.accounts.toArray(), []);
   const coinLogs = useLiveQuery(() => db.coinLogs.toArray(), []);
 
-  const { multiLineData, pieData, growthData, reportTable } = useMemo(() => {
+  const { multiLineData, pieData, growthData, reportTable, goalDistData } = useMemo(() => {
     if (!accounts || !coinLogs || accounts.length === 0) {
-      return { multiLineData: [], pieData: [], growthData: [], reportTable: [] };
+      return { multiLineData: [], pieData: [], growthData: [], reportTable: [], goalDistData: [] };
     }
 
     // --- 1. Pie Chart (Distribution) ---
@@ -322,6 +322,88 @@ export default function Analytics() {
                 <Bar dataKey="Comptes" fill="#3b82f6" radius={[4,4,0,0]} />
               </BarChart>
             </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* Row 4: Goal Achievement Analytics */}
+      <div className="grid grid-cols-1 gap-6">
+        <h2 className="text-xl font-bold text-white tracking-tight">Goal Achievement Analytics</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Goal Completion */}
+          <div className="pro-card p-5 justify-between gap-4">
+            <p className="text-xs font-bold text-textdim uppercase tracking-wider">Goal Completion</p>
+            <div>
+              <p className="text-3xl font-black tracking-tight mb-1 text-accent">
+                {accounts.filter(a => a.currentCoins >= 900).length}
+              </p>
+              <p className="text-xs font-medium text-textdim">compte(s) ≥ 900 coins</p>
+            </div>
+          </div>
+
+          {/* Average Coins */}
+          <div className="pro-card p-5 justify-between gap-4">
+            <p className="text-xs font-bold text-textdim uppercase tracking-wider">Average Coins</p>
+            <div>
+              <p className="text-3xl font-black tracking-tight mb-1 text-white">
+                {accounts.length > 0 ? Math.round(accounts.reduce((s, a) => s + a.currentCoins, 0) / accounts.length).toLocaleString() : 0}
+              </p>
+              <p className="text-xs font-medium text-textdim">Moyenne globale</p>
+            </div>
+          </div>
+
+          {/* Best Account */}
+          <div className="pro-card p-5 justify-between gap-4">
+            <p className="text-xs font-bold text-textdim uppercase tracking-wider">Best Account</p>
+            <div>
+              <p className="text-3xl font-black tracking-tight mb-1 text-white truncate">
+                {(() => {
+                  const best = [...accounts].sort((a, b) => b.currentCoins - a.currentCoins)[0];
+                  return best ? best.name : "-";
+                })()}
+              </p>
+              <p className="text-xs font-medium text-textdim">
+                {(() => {
+                  const best = [...accounts].sort((a, b) => b.currentCoins - a.currentCoins)[0];
+                  return best ? `${best.currentCoins.toLocaleString()} coins` : "Aucun compte";
+                })()}
+              </p>
+            </div>
+          </div>
+
+          {/* Average Goal Time */}
+          <div className="pro-card p-5 justify-between gap-4">
+            <p className="text-xs font-bold text-textdim uppercase tracking-wider">Avg Goal Time</p>
+            <div>
+              <p className="text-3xl font-black tracking-tight mb-1 text-white">
+                {(() => {
+                  // Calculate average time to reach 900 from coinLogs
+                  const goalTimes = [];
+                  accounts.forEach(acc => {
+                    if (acc.currentCoins >= 900) {
+                      const accLogs = coinLogs.filter(l => l.accountId === acc.id).sort((a, b) => new Date(a.date) - new Date(b.date));
+                      if (accLogs.length >= 2) {
+                        const firstDate = new Date(accLogs[0].date);
+                        const reachedLog = accLogs.find(l => l.newBalance >= 900);
+                        if (reachedLog) {
+                          const reachedDate = new Date(reachedLog.date);
+                          const days = Math.round((reachedDate - firstDate) / 86400000);
+                          if (days > 0) goalTimes.push(days);
+                        }
+                      }
+                    }
+                  });
+                  if (goalTimes.length === 0) return "—";
+                  return `${Math.round(goalTimes.reduce((s, d) => s + d, 0) / goalTimes.length)}j`;
+                })()}
+              </p>
+              <p className="text-xs font-medium text-textdim">
+                {(() => {
+                  const goaled = accounts.filter(a => a.currentCoins >= 900).length;
+                  return goaled > 0 ? `Basé sur ${goaled} compte(s)` : "Pas assez de données";
+                })()}
+              </p>
+            </div>
           </div>
         </div>
       </div>
