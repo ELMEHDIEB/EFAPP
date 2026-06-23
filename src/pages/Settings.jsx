@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
+import { useNavigate } from "react-router-dom";
 import { db } from "../db.js";
 import { useToast } from "../components/ui/ToastContext.jsx";
 import { useConfirm } from "../components/ui/ConfirmContext.jsx";
@@ -13,11 +14,13 @@ const TABLES = [
   "emotionalLogs",
   "notifications",
   "settings",
+  "auditLogs"
 ];
 
 export default function Settings() {
   const toast = useToast();
   const confirm = useConfirm();
+  const navigate = useNavigate();
 
   async function exportBackup() {
     const dump = {};
@@ -150,28 +153,17 @@ export default function Settings() {
       <div className="pro-card">
         <h2 className="pro-heading mb-6">
           <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
-          Données Locales
+          Données & Maintenance
         </h2>
         
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 border-b border-border/50">
-          <div>
-            <p className="text-sm font-bold text-white mb-1">Sauvegarder les données</p>
-            <p className="text-xs text-textdim">Générer un fichier JSON de votre progression.</p>
-          </div>
-          <button onClick={exportBackup} className="btn-secondary w-full md:w-auto">
-            Exporter JSON
-          </button>
-        </div>
-
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4">
           <div>
-            <p className="text-sm font-bold text-warn mb-1">Restaurer les données</p>
-            <p className="text-xs text-textdim">Écrase toutes vos données actuelles.</p>
+            <p className="text-sm font-bold text-white mb-1">Application Reset Center</p>
+            <p className="text-xs text-textdim">Gérez vos données locales, sauvegardes, et réinitialisations système.</p>
           </div>
-          <label className="btn-secondary w-full md:w-auto text-center cursor-pointer">
-            Importer JSON
-            <input type="file" accept="application/json" onChange={importBackup} className="hidden" />
-          </label>
+          <button onClick={() => navigate('/settings/data-management')} className="btn-secondary w-full md:w-auto">
+            Data Management
+          </button>
         </div>
       </div>
 

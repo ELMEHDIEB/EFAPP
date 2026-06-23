@@ -141,3 +141,23 @@ export async function undoLastAction(accountId) {
     return lastLog.previousBalance;
   });
 }
+
+/**
+ * Reset all accounts back to 0 coins using applyCoinChange
+ * This preserves history and analytics coherence.
+ */
+export async function resetAllAccounts() {
+  const allAccounts = await db.accounts.toArray();
+  let count = 0;
+  for (const acc of allAccounts) {
+    if (acc.currentCoins > 0) {
+      await applyCoinChange(acc.id, {
+        action: "SET_BALANCE",
+        reason: "Master Reset",
+        amount: 0
+      });
+      count++;
+    }
+  }
+  return count;
+}

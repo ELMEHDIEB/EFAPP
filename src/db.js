@@ -26,4 +26,8 @@ db.version(1).stores({
   settings: "key",
 });
 
+db.version(2).stores({
+  auditLogs: "++id, date, actionType, details"
+});
+
 export default db;
