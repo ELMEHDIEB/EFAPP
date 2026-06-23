@@ -3,6 +3,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { useNavigate } from "react-router-dom";
 import { db } from "../db.js";
 import { createSpin, getProtection900Status, classifyImpulseRisk, getSpentThisWeek } from "../spinActions.js";
+import { getLossSupport } from "../utils/psychEngine.js";
 
 const EMOTIONS = ["Excité", "Curieux", "Frustré", "Ennuyé", "Stressé", "Confiant"];
 
@@ -393,12 +394,27 @@ function SpinWizard({ accounts, onComplete, onCancel }) {
                   Il vous manquera {missingTo900} coins pour atteindre les 900.
                 </p>
               )}
-              {/* Anti-FOMO contextual text */}
-              <p className={`text-xs font-medium mt-3 ${isDangerPostSpin ? 'text-danger' : 'text-accent'}`}>
-                {isDangerPostSpin 
-                  ? "⚠ Risque élevé de retomber sous l'objectif" 
-                  : "Impact faible sur l'objectif"}
-              </p>
+              {/* Graduated Psychological Support */}
+              {(() => {
+                const support = getLossSupport(Number(coinsSpent), selectedAccount?.currentCoins || 0, 900);
+                const severityColors = {
+                  low: { bg: 'bg-accent/5', border: 'border-accent/15', text: 'text-accent', icon: 'text-accent' },
+                  medium: { bg: 'bg-warn/5', border: 'border-warn/15', text: 'text-warn', icon: 'text-warn' },
+                  high: { bg: 'bg-danger/5', border: 'border-danger/15', text: 'text-danger', icon: 'text-danger' }
+                };
+                const c = severityColors[support.severity];
+                return (
+                  <div className={`${c.bg} border ${c.border} rounded-lg p-3 mt-3 flex items-start gap-2.5`}>
+                    <svg className={`w-4 h-4 ${c.icon} shrink-0 mt-0.5`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={support.severity === 'low' ? "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" : "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"} />
+                    </svg>
+                    <div>
+                      <p className={`text-xs font-semibold ${c.text}`}>{support.message}</p>
+                      <p className="text-[11px] text-textdim mt-0.5">{support.advice}</p>
+                    </div>
+                  </div>
+                );
+              })()}
               {weeklyLimit > 0 && (
                 <div className="mt-4 pt-4 border-t border-border">
                   <p className="text-xs font-medium text-textdim mb-1 uppercase tracking-wider">Limite hebdomadaire ({weeklyLimit})</p>

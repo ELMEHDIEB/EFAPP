@@ -2,6 +2,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { Link } from "react-router-dom";
 import { db } from "../db.js";
 import { getNextGoal, getGoalDistribution } from "../utils/goalEngine.js";
+import { getPortfolioMotivation } from "../utils/motivationEngine.js";
 
 export default function Dashboard() {
   const accounts = useLiveQuery(() => db.accounts.toArray(), []);
@@ -68,6 +69,26 @@ export default function Dashboard() {
       <header>
         <h1 className="text-3xl font-bold text-white tracking-tight">Executive Dashboard</h1>
         <p className="text-sm text-textdim mt-1">Vue d'ensemble financière et suivi du patrimoine.</p>
+        
+        {(() => {
+          const motivation = getPortfolioMotivation(accounts, coinLogs);
+          return (
+            <div className={`mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium ${
+              motivation.type === 'success' ? 'bg-accent/10 text-accent border-accent/20' :
+              motivation.type === 'warn' ? 'bg-warn/10 text-warn border-warn/20' :
+              'bg-white/5 text-textdim border-white/10'
+            }`}>
+              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={
+                  motivation.type === 'success' ? "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" :
+                  motivation.type === 'warn' ? "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" :
+                  "M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                } />
+              </svg>
+              {motivation.message}
+            </div>
+          );
+        })()}
       </header>
 
       {/* Row 1: Core Financials */}
@@ -159,8 +180,8 @@ export default function Dashboard() {
                       <p className="text-xs text-textdim">{acc.currentCoins.toLocaleString()} coins</p>
                     </div>
                   </div>
-                  <div className="text-accent font-black">
-                    <span className="opacity-50 text-textdim mr-2">=</span>
+                  <div className={`text-sm font-black ${getNextGoal(acc.currentCoins).progressPct >= 100 ? 'text-accent' : 'text-white'}`}>
+                    {getNextGoal(acc.currentCoins).progressPct}%
                   </div>
                 </div>
               );
