@@ -17,6 +17,7 @@ import PostLossRecovery from "./pages/PostLossRecovery.jsx";
 
 // Lazy Loaded Components to optimize bundle size
 const Analytics = lazy(() => import("./pages/Analytics.jsx"));
+const BilanTracker = lazy(() => import("./pages/BilanTracker.jsx"));
 const CommandPalette = lazy(() => import("./components/ui/CommandPalette.jsx").then(m => ({ default: m.CommandPalette })));
 
 export default function App() {
@@ -43,6 +44,7 @@ export default function App() {
             <Suspense fallback={<div className="flex h-[70vh] items-center justify-center"><div className="w-8 h-8 border-2 border-white/10 border-t-white rounded-full animate-spin"></div></div>}>
               <Routes>
                 <Route path="/" element={<Dashboard />} />
+                <Route path="/bilan-tracker" element={<BilanTracker />} />
                 <Route path="/accounts" element={<Accounts />} />
                 <Route path="/spin-tracker" element={<SpinTracker />} />
                 <Route path="/journal" element={<EmotionalJournal />} />

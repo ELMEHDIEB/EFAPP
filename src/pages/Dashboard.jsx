@@ -1,20 +1,15 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { Link } from "react-router-dom";
 import { db } from "../db.js";
-import { progressPercent } from "../accountActions.js";
-import { classifyImpulseRisk, getPendingRegrets, logRegret } from "../spinActions.js";
-import { getGlobalDisciplineScore } from "../scoreActions.js";
+import { getNextGoal, getGoalDistribution } from "../utils/goalEngine.js";
 
 export default function Dashboard() {
   const accounts = useLiveQuery(() => db.accounts.toArray(), []);
-  const spinLogs = useLiveQuery(() => db.spinLogs.toArray(), []);
   const coinLogs = useLiveQuery(() => db.coinLogs.toArray(), []);
-  const pendingRegrets = useLiveQuery(() => getPendingRegrets(), []);
-  const disciplineScoreData = useLiveQuery(() => getGlobalDisciplineScore(), []) || { score: 100, isEvaluating: true };
 
-  if (!accounts || !spinLogs || !coinLogs) {
+  if (!accounts || !coinLogs) {
     return (
-      <div className="flex h-[70vh] items-center justify-center">
+      <div className="flex justify-center py-20">
         <div className="w-8 h-8 border-2 border-white/10 border-t-white rounded-full animate-spin"></div>
       </div>
     );
@@ -24,195 +19,232 @@ export default function Dashboard() {
     return <DashboardEmptyState />;
   }
 
-  // --- Real Metrics Calculations ---
+  const sortedAccounts = [...accounts].sort((a, b) => b.currentCoins - a.currentCoins);
+  
+  // KPIs
+  const totalAccounts = accounts.length;
+  const totalCoins = accounts.reduce((sum, a) => sum + a.currentCoins, 0);
+  const averageCoins = totalAccounts > 0 ? Math.round(totalCoins / totalAccounts) : 0;
+  
+  const above900 = accounts.filter(a => a.currentCoins >= 900).length;
+  const below900 = accounts.filter(a => a.currentCoins < 900).length;
+  
+  const highestAccount = sortedAccounts[0];
+  const lowestAccount = sortedAccounts[sortedAccounts.length - 1];
+  
+  const closestTo900 = [...accounts]
+    .filter(a => a.currentCoins < 900)
+    .sort((a, b) => (900 - a.currentCoins) - (900 - b.currentCoins))[0];
 
-  // 1. Discipline Score
-  const disciplineScoreText = disciplineScoreData.isEvaluating ? "En évaluation" : `${disciplineScoreData.score}/100`;
-  const dsColor = disciplineScoreData.isEvaluating ? "text-white" : disciplineScoreData.score >= 80 ? "text-accent" : disciplineScoreData.score >= 50 ? "text-warn" : "text-danger";
+  const distribution = getGoalDistribution(accounts);
 
-  // 2. Emotional Status
-  const recentSpins = [...spinLogs].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 10);
-  const emotionCounts = recentSpins.reduce((acc, spin) => {
-    if(spin.emotionBefore) acc[spin.emotionBefore] = (acc[spin.emotionBefore] || 0) + 1;
-    return acc;
-  }, {});
-  const topEmotion = Object.entries(emotionCounts).sort((a,b)=>b[1]-a[1])[0]?.[0] || "Neutre";
+  // Growth & Decline (from coinLogs variations)
+  let totalGrowth = 0;
+  let totalDecline = 0;
+  
+  // Find best growth and worst decline by looking at recent account changes
+  // Easiest way: look at the variation of currentCoins - last log's previousBalance
+  let bestGrowth = { name: "-", diff: 0 };
+  let worstDecline = { name: "-", diff: 0 };
 
-  // 3. Accounts Approaching 900
-  const accountsApproaching900 = accounts.filter(a => a.currentCoins >= 750 && a.currentCoins < 900);
-
-  // 4. Total Coins
-  const totalCoins = accounts.reduce((s, a) => s + a.currentCoins, 0);
-  const totalTarget = accounts.reduce((s, a) => s + a.targetCoins, 0);
-
-  // 5. Weekly Spending
-  const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
-  const weeklySpends = spinLogs.filter(s => (s.createdAt && s.createdAt >= sevenDaysAgo) || s.date >= sevenDaysAgo.slice(0,10));
-  const weeklySpending = weeklySpends.reduce((s, spin) => s + spin.coinsSpent, 0);
-
-  // 6. Weekly Savings
-  const weeklyAdds = coinLogs.filter(c => c.action === "ADD" && c.date >= sevenDaysAgo.slice(0,10));
-  const weeklySavings = weeklyAdds.reduce((s, log) => s + log.amount, 0);
-
-  // 7. Behavioral Summary
-  const impulsiveCount = spinLogs.filter(s => classifyImpulseRisk(s) !== "Rational").length;
-  const rationalCount = spinLogs.length - impulsiveCount;
-  const behaviorText = spinLogs.length === 0 ? "Aucun historique" : impulsiveCount > rationalCount ? "Risque Impulsif" : "Majeurement Rationnel";
-
-  // 8. Progress Overview
-  const overallProgress = totalTarget > 0 ? Math.min(100, Math.round((totalCoins / totalTarget) * 100)) : 0;
-
-  // 9. Recent Activity
-  const recentActivity = [...spinLogs].sort((a,b) => b.id - a.id).slice(0, 4);
-
-  // 10. Risk Indicators
-  const riskLevel = (accountsApproaching900.length > 0 && impulsiveCount > 0) ? "Élevé" : accountsApproaching900.length > 0 ? "Modéré" : "Faible";
-
-  // 11. Top Account
-  const topAccount = accounts.length > 0 ? [...accounts].sort((a,b) => b.currentCoins - a.currentCoins)[0] : null;
-
-  // 12. Trend Analysis
-  const fourteenDaysAgo = new Date(Date.now() - 14 * 86400000).toISOString();
-  const lastWeekSpends = spinLogs.filter(s => {
-    const isAfter14 = (s.createdAt && s.createdAt >= fourteenDaysAgo) || s.date >= fourteenDaysAgo.slice(0,10);
-    const isBefore7 = (s.createdAt && s.createdAt < sevenDaysAgo) || s.date < sevenDaysAgo.slice(0,10);
-    return isAfter14 && isBefore7;
+  accounts.forEach(acc => {
+    const logs = coinLogs.filter(l => l.accountId === acc.id).sort((a, b) => b.id - a.id);
+    if (logs.length > 0) {
+      const lastLog = logs[0];
+      const diff = acc.currentCoins - lastLog.previousBalance;
+      if (diff > bestGrowth.diff) bestGrowth = { name: acc.name, diff };
+      if (diff < worstDecline.diff) worstDecline = { name: acc.name, diff };
+    }
   });
-  const lastWeekSpending = lastWeekSpends.reduce((s, spin) => s + spin.coinsSpent, 0);
-  const trendDiff = weeklySpending - lastWeekSpending;
-  const trendText = trendDiff > 0 ? `+${trendDiff} vs semaine préc.` : trendDiff < 0 ? `${trendDiff} vs semaine préc.` : "Stable vs semaine préc.";
-  const trendColor = trendDiff > 0 ? "text-danger" : trendDiff < 0 ? "text-accent" : "text-textdim";
+
+  coinLogs.forEach(log => {
+    const diff = log.newBalance - log.previousBalance;
+    if (diff > 0) totalGrowth += diff;
+    if (diff < 0) totalDecline += Math.abs(diff);
+  });
 
   return (
-    <div className="max-w-7xl mx-auto pb-12 animate-in fade-in duration-500">
-      <header className="mb-10">
+    <div className="max-w-7xl mx-auto pb-12 animate-in fade-in duration-500 space-y-8">
+      <header>
         <h1 className="text-3xl font-bold text-white tracking-tight">Executive Dashboard</h1>
-        <p className="text-sm text-textdim mt-1">Vue d'ensemble analytique et comportementale.</p>
+        <p className="text-sm text-textdim mt-1">Vue d'ensemble financière et suivi du patrimoine.</p>
       </header>
 
-      {/* Regrets Alert */}
-      {pendingRegrets && pendingRegrets.length > 0 && (
-        <div className="mb-8">
-          <div className="pro-card border-warn/30 bg-warn/5">
-            <h2 className="pro-heading text-warn mb-4">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              Évaluation en attente
-            </h2>
-            <div className="grid gap-3">
-              {pendingRegrets.map(spin => (
-                <div key={spin.id} className="bg-ink p-4 rounded-lg border border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
-                  <div>
-                    <p className="text-white font-medium flex items-center gap-2">
-                      {spin.packName} 
-                      <span className="text-[10px] bg-danger/10 text-danger px-1.5 py-0.5 rounded font-mono border border-danger/20">-{spin.coinsSpent}</span>
-                    </p>
-                    <p className="text-xs text-textdim mt-1">Satisfaction: {spin.satisfactionScore !== undefined ? spin.satisfactionScore : "—"}/10</p>
+      {/* Row 1: Core Financials */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <ProCard title="Total Coins" value={totalCoins.toLocaleString()} sub={`${totalAccounts} comptes actifs`} />
+        <ProCard title="Moyenne par Compte" value={averageCoins.toLocaleString()} sub="Coins / compte" />
+        <ProCard title="Croissance Globale" value={`+${totalGrowth.toLocaleString()}`} color="text-accent" sub="Total des gains historiques" />
+        <ProCard title="Pertes Globales" value={`-${totalDecline.toLocaleString()}`} color="text-red-400" sub="Total des dépenses/pertes" />
+      </div>
+
+      {/* Row 2: Bilan Comparison Upgrade */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <ProCard title="Comptes Prêts (≥900)" value={above900} sub={`${Math.round((above900/totalAccounts)*100)}% du portfolio`} color="text-accent" />
+        <ProCard title="Comptes à Risque (<900)" value={below900} sub={`${Math.round((below900/totalAccounts)*100)}% du portfolio`} color="text-warn" />
+        <ProCard title="Meilleure Croissance" value={`+${bestGrowth.diff}`} sub={bestGrowth.name} color="text-accent" />
+        <ProCard title="Pire Déclin" value={`${worstDecline.diff}`} sub={worstDecline.name} color="text-red-400" />
+      </div>
+
+      {/* Row 3: Goal Tier Distribution */}
+      <div className="pro-card bg-panel p-6">
+        <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-4">Portfolio Distribution (Tiers)</h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <TierWidget title="< 900" count={distribution["< 900"]} total={totalAccounts} color="text-red-400" />
+          <TierWidget title="≥ 900" count={distribution[">= 900"]} total={totalAccounts} color="text-accent" />
+          <TierWidget title="≥ 1800" count={distribution[">= 1800"]} total={totalAccounts} color="text-purple-400" />
+          <TierWidget title="≥ 2700" count={distribution[">= 2700"]} total={totalAccounts} color="text-blue-400" />
+          <TierWidget title="≥ 3600" count={distribution[">= 3600"]} total={totalAccounts} color="text-yellow-400" />
+          <TierWidget title="≥ 4500" count={distribution[">= 4500"]} total={totalAccounts} color="text-pink-400" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Multi-Goal Tracking */}
+        <div className="pro-card bg-panel p-6">
+          <h2 className="text-lg font-bold text-white mb-6">Multi-Goal Tracking</h2>
+          <div className="space-y-5">
+            {sortedAccounts.slice(0, 8).map(acc => {
+              const { currentTier, nextGoal, remainingCoins, progressPct } = getNextGoal(acc.currentCoins);
+              let colorClass = "bg-red-500";
+              let textClass = "text-red-400";
+              
+              if (progressPct >= 100) {
+                colorClass = "bg-accent";
+                textClass = "text-accent";
+              } else if (progressPct >= 50) {
+                colorClass = "bg-warn";
+                textClass = "text-warn";
+              }
+
+              return (
+                <div key={acc.id} className="group">
+                  <div className="flex justify-between items-end mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-white">{acc.name}</span>
+                      <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-white/10 text-textdim">Tier {currentTier}</span>
+                    </div>
+                    <span className={`text-sm font-bold ${textClass}`}>{progressPct}%</span>
                   </div>
-                  <div className="flex gap-2 shrink-0">
-                    <button onClick={() => logRegret(spin.id, true)} className="btn-base bg-danger/10 text-danger hover:bg-danger hover:text-white transition-colors">
-                      Je regrette
-                    </button>
-                    <button onClick={() => logRegret(spin.id, false)} className="btn-base bg-white/5 text-white hover:bg-white hover:text-ink transition-colors">
-                      Valable
-                    </button>
+                  <div className="h-2 bg-ink rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-500 ${colorClass}`} 
+                      style={{ width: `${Math.min(100, progressPct)}%` }} 
+                    />
+                  </div>
+                  <div className="flex justify-between mt-1">
+                    <span className="text-[10px] text-textdim">{acc.currentCoins} coins</span>
+                    <span className="text-[10px] text-textdim">Goal {nextGoal} ({remainingCoins} restants)</span>
                   </div>
                 </div>
-              ))}
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Account Ranking System */}
+        <div className="pro-card bg-panel p-6">
+          <h2 className="text-lg font-bold text-white mb-6">Classement des Comptes</h2>
+          <div className="space-y-2">
+            {sortedAccounts.map((acc, index) => {
+              const isTop3 = index < 3;
+              return (
+                <div key={acc.id} className="flex items-center justify-between p-3 rounded-lg bg-ink border border-border hover:border-white/10 transition-colors">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${isTop3 ? 'bg-white/10 text-white' : 'bg-transparent text-textdim'}`}>
+                      #{index + 1}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-white">{acc.name}</p>
+                      <p className="text-xs text-textdim">{acc.currentCoins.toLocaleString()} coins</p>
+                    </div>
+                  </div>
+                  <div className="text-accent font-black">
+                    <span className="opacity-50 text-textdim mr-2">=</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Row 4: High Value Features (Phase 11) */}
+      <div>
+        <h2 className="text-xl font-bold text-white tracking-tight mb-4 mt-4">Premium Intelligence</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          
+          {/* Portfolio Health Score */}
+          <div className="pro-card bg-gradient-to-br from-panel to-ink p-6 border-accent/20">
+            <h3 className="text-xs font-bold text-accent uppercase tracking-wider mb-4 flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>
+              Health Score
+            </h3>
+            <div className="flex items-end gap-2 mb-2">
+              <span className="text-4xl font-black text-white">
+                {totalAccounts === 0 ? 0 : Math.min(100, Math.round(((totalCoins / (totalAccounts * 900)) * 50) + (totalGrowth >= totalDecline ? 50 : 20)))}
+              </span>
+              <span className="text-textdim mb-1 font-medium">/ 100</span>
+            </div>
+            <p className="text-xs text-textdim mt-2">Basé sur la stabilité (Gains vs Pertes) et la progression globale vers 900.</p>
+          </div>
+
+          {/* Forecast Engine */}
+          <div className="pro-card bg-panel p-6">
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
+              <svg className="w-4 h-4 text-textdim" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+              Forecast Engine
+            </h3>
+            {closestTo900 ? (
+              <>
+                <p className="text-sm font-bold text-white mb-1">{closestTo900.name} (Objectif 900)</p>
+                <div className="text-2xl font-black text-accent mb-2">
+                  ~ {Math.ceil((900 - closestTo900.currentCoins) / (totalGrowth > 0 ? (totalGrowth / 14) : 10))} jours
+                </div>
+                <p className="text-xs text-textdim">Estimation basée sur la croissance historique moyenne (14j).</p>
+              </>
+            ) : (
+              <p className="text-sm text-textdim mt-4">Aucun compte en attente d'objectif.</p>
+            )}
+          </div>
+
+          {/* Smart Alerts */}
+          <div className="pro-card bg-panel p-6">
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
+              <svg className="w-4 h-4 text-textdim" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+              Smart Alerts
+            </h3>
+            <div className="space-y-3">
+              {above900 > 0 && (
+                <div className="bg-accent/10 border border-accent/20 rounded p-2 text-xs text-accent font-medium">
+                  • {above900} compte(s) ont franchi le seuil des 900 coins. Prêt(s) pour le pass.
+                </div>
+              )}
+              {totalDecline > totalGrowth && (
+                <div className="bg-red-500/10 border border-red-500/20 rounded p-2 text-xs text-red-400 font-medium">
+                  • Attention : Les dépenses globales dépassent la croissance. Risque de déclin du portefeuille.
+                </div>
+              )}
+              {totalAccounts > 0 && totalDecline <= totalGrowth && above900 === 0 && (
+                <div className="bg-white/5 border border-white/10 rounded p-2 text-xs text-textdim font-medium">
+                  • Croissance stable détectée. Maintenez vos efforts.
+                </div>
+              )}
             </div>
           </div>
         </div>
-      )}
-
-      {/* Row 1: Core KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-4">
-        <ProCard title="Discipline Score" value={disciplineScoreText} sub={disciplineScoreData.isEvaluating ? "3 spins requis" : "Sur les 30 derniers jours"} color={dsColor} />
-        <ProCard title="Total Coins" value={totalCoins.toLocaleString()} sub={`Progression: ${overallProgress}% de l'objectif global`} />
-        <ProCard title="Dépenses Hebdo" value={`-${weeklySpending}`} sub={trendText} subColor={trendColor} color={weeklySpending > 0 ? "text-danger" : "text-white"} />
-        <ProCard title="Épargne Hebdo" value={`+${weeklySavings}`} sub="Coins ajoutés sur 7 jours" color="text-accent" />
-      </div>
-
-      {/* Row 2: Behavioral KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
-        <ProCard title="Status Émotionnel" value={topEmotion} sub="Émotion dominante (10 derniers spins)" />
-        <ProCard title="Profil Comportemental" value={behaviorText} sub={`${rationalCount} Rationnels / ${impulsiveCount} Impulsifs`} color={impulsiveCount > rationalCount ? "text-warn" : "text-white"} />
-        <ProCard title="Risque Global" value={riskLevel} sub="Croisement solde / impulsivité" color={riskLevel === "Élevé" ? "text-danger" : riskLevel === "Modéré" ? "text-warn" : "text-accent"} />
-        <ProCard title="Top Compte" value={topAccount ? topAccount.currentCoins.toLocaleString() : "0"} sub={topAccount ? topAccount.name : "Aucun"} color="text-white" />
-      </div>
-
-      {/* Row 3: Lists & Deep Dives */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        
-        {/* Approaching 900 */}
-        <div className="pro-card">
-          <h2 className="pro-heading mb-6">
-            <div className="w-2 h-2 rounded-full bg-warn"></div> Focus Seuil 900
-          </h2>
-          <div className="flex-1 overflow-y-auto pr-2 space-y-4">
-            {accountsApproaching900.length > 0 ? (
-              accountsApproaching900.sort((a, b) => b.currentCoins - a.currentCoins).map((acc) => {
-                const pct = progressPercent(acc);
-                const missing = 900 - acc.currentCoins;
-                return (
-                  <div key={acc.id} className="group">
-                    <div className="flex justify-between items-end mb-1.5">
-                      <span className="text-sm font-medium text-white">{acc.name}</span>
-                      <span className="text-xs font-medium text-warn">{missing} manquants</span>
-                    </div>
-                    <div className="progress-track bg-ink">
-                      <div className="progress-fill bg-warn" style={{ width: `${pct}%` }} />
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="h-full flex items-center justify-center">
-                <p className="text-sm text-textdim">Aucun compte dans la zone critique (750-899).</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Recent Activity */}
-        <div className="pro-card">
-          <h2 className="pro-heading mb-6">
-            <div className="w-2 h-2 rounded-full bg-white"></div> Activité Récente
-          </h2>
-          <div className="flex-1 overflow-y-auto pr-2 space-y-3">
-            {recentActivity.length > 0 ? (
-              recentActivity.map(spin => {
-                const risk = classifyImpulseRisk(spin);
-                return (
-                  <div key={spin.id} className="flex items-center justify-between p-3 rounded-lg bg-ink border border-white/5 hover:border-white/10 transition-colors">
-                    <div>
-                      <p className="text-sm font-medium text-white">{spin.packName}</p>
-                      <p className="text-xs text-textdim mt-0.5">{spin.date} • {risk}</p>
-                    </div>
-                    <span className="text-sm font-mono text-danger font-bold">-{spin.coinsSpent}</span>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="h-full flex items-center justify-center">
-                <p className="text-sm text-textdim">Aucun historique de spin.</p>
-              </div>
-            )}
-          </div>
-        </div>
-
       </div>
     </div>
   );
 }
 
-// --- Premium Components ---
-
-function ProCard({ title, value, sub, color = "text-white", subColor = "text-textdim" }) {
+function ProCard({ title, value, sub, color = "text-white" }) {
   return (
-    <div className="pro-card justify-between gap-6">
-      <p className="text-[10px] font-semibold text-textdim uppercase tracking-widest">{title}</p>
+    <div className="pro-card justify-between gap-4 p-5 bg-panel">
+      <p className="text-xs font-bold text-textdim uppercase tracking-wider">{title}</p>
       <div>
         <p className={`text-3xl font-black tracking-tight mb-1 truncate ${color}`}>{value}</p>
-        <p className={`text-xs font-medium truncate ${subColor}`}>{sub}</p>
+        <p className="text-xs font-medium text-textdim truncate">{sub}</p>
       </div>
     </div>
   );
@@ -224,41 +256,33 @@ function DashboardEmptyState() {
       <div className="text-center mb-16">
         <div className="w-24 h-24 mx-auto mb-8 rounded-3xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 flex items-center justify-center shadow-[0_0_60px_rgba(255,255,255,0.05)]">
           <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
-        <h1 className="text-4xl font-black text-white tracking-tight mb-4">Bienvenue sur Coin Manager Pro</h1>
+        <h1 className="text-4xl font-black text-white tracking-tight mb-4">Coin Manager Pro</h1>
         <p className="text-lg text-textdim max-w-2xl mx-auto leading-relaxed">
-          Reprenez le contrôle de votre économie eFootball. Analysez vos tirages, maîtrisez vos impulsions et atteignez vos objectifs avec notre Mental Coach intégré.
+          Votre plateforme comptable pour la gestion et le suivi du patrimoine eFootball.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-        <div className="bg-ink border border-white/5 rounded-2xl p-6 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full blur-2xl -mr-8 -mt-8 transition-transform group-hover:scale-150"></div>
-          <svg className="w-8 h-8 text-white mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-          <h3 className="text-white font-bold mb-2">Suivi des Coins</h3>
-          <p className="text-sm text-textdim">Gérez vos économies et surveillez vos dépenses de près sur de multiples comptes.</p>
-        </div>
-        <div className="bg-ink border border-white/5 rounded-2xl p-6 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-warn/10 rounded-full blur-2xl -mr-8 -mt-8 transition-transform group-hover:scale-150"></div>
-          <svg className="w-8 h-8 text-warn mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-          <h3 className="text-white font-bold mb-2">Mental Coach</h3>
-          <p className="text-sm text-textdim">Notre algorithme classifie vos risques d'impulsivité et bloque préventivement les actions FOMO.</p>
-        </div>
-        <div className="bg-ink border border-white/5 rounded-2xl p-6 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-accent/10 rounded-full blur-2xl -mr-8 -mt-8 transition-transform group-hover:scale-150"></div>
-          <svg className="w-8 h-8 text-accent mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
-          <h3 className="text-white font-bold mb-2">Journal Émotionnel</h3>
-          <p className="text-sm text-textdim">Découvrez quelles émotions déclenchent vos pires spins et optimisez votre satisfaction.</p>
-        </div>
-      </div>
-
       <div className="flex justify-center">
-        <Link to="/accounts" className="btn-primary px-10 py-4 rounded-xl text-base tracking-wide flex items-center gap-3 shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:shadow-[0_0_40px_rgba(255,255,255,0.4)] transition-all">
+        <Link to="/accounts" className="btn-primary px-10 py-4 rounded-xl text-base tracking-wide flex items-center gap-3">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
-          Connecter le premier compte
+          Créer un compte
         </Link>
+      </div>
+    </div>
+  );
+}
+
+function TierWidget({ title, count, total, color }) {
+  const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+  return (
+    <div className="bg-ink p-3 rounded-lg border border-border">
+      <p className="text-[10px] text-textdim font-bold tracking-wider mb-1 uppercase">{title}</p>
+      <div className="flex items-end gap-2">
+        <span className={`text-2xl font-black ${color}`}>{count}</span>
+        <span className="text-xs text-textdim mb-1 opacity-60">({pct}%)</span>
       </div>
     </div>
   );
