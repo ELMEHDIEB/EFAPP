@@ -1,10 +1,25 @@
-import { useState, Suspense, lazy } from "react";
+import { useState, useEffect, Suspense, lazy } from "react";
 import { Routes, Route } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "./db.js";
 
-import { ToastProvider } from "./components/ui/ToastContext.jsx";
+import { ToastProvider, useToast } from "./components/ui/ToastContext.jsx";
 import { ConfirmProvider } from "./components/ui/ConfirmContext.jsx";
+
+function GlobalListeners() {
+  const toast = useToast();
+  
+  useEffect(() => {
+    const handleMilestone = (e) => {
+      const { tier, coins } = e.detail;
+      toast(`🎉 Palier atteint ! Vous avez franchi la barre des ${tier} coins (Solde actuel : ${coins}).`, "success");
+    };
+    window.addEventListener('milestone_passed', handleMilestone);
+    return () => window.removeEventListener('milestone_passed', handleMilestone);
+  }, [toast]);
+  
+  return null;
+}
 
 import Sidebar from "./components/Sidebar.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
@@ -24,14 +39,43 @@ const Achievements = lazy(() => import("./pages/Achievements.jsx"));
 const Leaderboard = lazy(() => import("./pages/Leaderboard.jsx"));
 const DataManagement = lazy(() => import("./pages/DataManagement.jsx"));
 const EpicCalculator = lazy(() => import("./pages/EpicCalculator.jsx"));
+const ActivityTimeline = lazy(() => import("./pages/ActivityTimeline.jsx"));
+const NotFound = lazy(() => import("./pages/NotFound.jsx"));
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const settings = useLiveQuery(() => db.settings.toArray(), []);
 
-  if (!settings) return null; // Wait for IndexedDB
+  const pinSetting = settings?.find(s => s.key === "pinLock");
+  const autoLockSetting = settings?.find(s => s.key === "autoLockMinutes");
 
-  const pinSetting = settings.find(s => s.key === "pinLock");
+  useEffect(() => {
+    if (!isAuthenticated || !pinSetting?.value) return;
+    const minutes = parseInt(autoLockSetting?.value || "0", 10);
+    if (minutes <= 0) return;
+    
+    let timeout;
+    const resetTimer = () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        setIsAuthenticated(false);
+      }, minutes * 60000);
+    };
+    
+    window.addEventListener("mousemove", resetTimer);
+    window.addEventListener("keydown", resetTimer);
+    window.addEventListener("click", resetTimer);
+    resetTimer();
+    
+    return () => {
+      clearTimeout(timeout);
+      window.removeEventListener("mousemove", resetTimer);
+      window.removeEventListener("keydown", resetTimer);
+      window.removeEventListener("click", resetTimer);
+    };
+  }, [isAuthenticated, pinSetting, autoLockSetting]);
+
+  if (!settings) return null; // Wait for IndexedDB
 
   if (pinSetting && pinSetting.value && !isAuthenticated) {
     return <PinLock expectedPin={pinSetting.value} onSuccess={() => setIsAuthenticated(true)} />;
@@ -40,28 +84,33 @@ export default function App() {
   return (
     <ToastProvider>
       <ConfirmProvider>
+        <GlobalListeners />
         <div className="flex h-screen bg-ink overflow-hidden selection:bg-white/20">
           <Sidebar />
           <Suspense fallback={null}>
             <CommandPalette />
           </Suspense>
           <main className="flex-1 overflow-y-auto p-4 md:p-8">
-            <Suspense fallback={<div className="flex h-[70vh] items-center justify-center"><div className="w-8 h-8 border-2 border-white/10 border-t-white rounded-full animate-spin"></div></div>}>
-              <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/bilan-tracker" element={<BilanTracker />} />
-                <Route path="/accounts" element={<Accounts />} />
-                <Route path="/spin-tracker" element={<SpinTracker />} />
-                <Route path="/journal" element={<EmotionalJournal />} />
-                <Route path="/analytics" element={<ErrorBoundary><Analytics /></ErrorBoundary>} />
-                <Route path="/achievements" element={<Achievements />} />
-                <Route path="/leaderboard" element={<Leaderboard />} />
-                <Route path="/epic-calculator" element={<EpicCalculator />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/settings/data-management" element={<DataManagement />} />
-                <Route path="/post-loss-recovery" element={<PostLossRecovery />} />
-              </Routes>
-            </Suspense>
+            <ErrorBoundary>
+              <Suspense fallback={<div className="flex h-[70vh] items-center justify-center"><div className="w-8 h-8 border-2 border-white/10 border-t-white rounded-full animate-spin"></div></div>}>
+                <Routes>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/bilan-tracker" element={<BilanTracker />} />
+                  <Route path="/accounts" element={<Accounts />} />
+                  <Route path="/spin-tracker" element={<SpinTracker />} />
+                  <Route path="/journal" element={<EmotionalJournal />} />
+                  <Route path="/analytics" element={<Analytics />} />
+                  <Route path="/achievements" element={<Achievements />} />
+                  <Route path="/leaderboard" element={<Leaderboard />} />
+                  <Route path="/epic-calculator" element={<EpicCalculator />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/data-management" element={<DataManagement />} />
+                  <Route path="/post-loss-recovery" element={<PostLossRecovery />} />
+                  <Route path="/activity-timeline" element={<ActivityTimeline />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </ErrorBoundary>
           </main>
         </div>
       </ConfirmProvider>

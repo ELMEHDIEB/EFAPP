@@ -202,8 +202,8 @@ export default function Leaderboard() {
           globalSearchFn={(row, q) => row.name.toLowerCase().includes(q) || (row.groupTag && row.groupTag.toLowerCase().includes(q))}
           defaultSortKey="coins"
         />
-        {Object.keys(disciplineData).length > 0 && (
-          <p className="text-[10px] text-textdim mt-4">* Score en cours d'évaluation (nécessite au moins 3 spins sur 30 jours).</p>
+        {Object.values(healthData).some(hs => hs.label === "Evaluating") && (
+          <p className="text-[10px] text-textdim mt-4">* Certains scores sont en cours d'évaluation (nécessite plus de données).</p>
         )}
       </div>
     </div>

@@ -30,4 +30,8 @@ db.version(2).stores({
   auditLogs: "++id, date, actionType, details"
 });
 
+db.version(3).stores({
+  goodDecisionLogs: "++id, spinId, date, accountId, reason"
+});
+
 export default db;

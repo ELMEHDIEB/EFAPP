@@ -1,3 +1,4 @@
+import { useState, useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Link, useNavigate } from "react-router-dom";
 import { db } from "../db.js";
@@ -5,11 +6,84 @@ import { getNextGoal, getGoalDistribution } from "../utils/goalEngine.js";
 import { getPortfolioMotivation } from "../utils/motivationEngine.js";
 import HeroHeader from "../components/ui/HeroHeader.jsx";
 import EmptyState from "../components/ui/EmptyState.jsx";
+import StatCard from "../components/ui/StatCard.jsx";
+import GoalRadar from "../components/GoalRadar.jsx";
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [showGoalRadar, setShowGoalRadar] = useState(false);
+  const [dismissedWarning, setDismissedWarning] = useState(false);
   const accounts = useLiveQuery(() => db.accounts.toArray(), []);
   const coinLogs = useLiveQuery(() => db.coinLogs.toArray(), []);
+  const settings = useLiveQuery(() => db.settings.toArray(), []);
+
+  const stats = useMemo(() => {
+    if (!accounts || accounts.length === 0) {
+      return {
+        totalAccounts: 0, totalCoins: 0, averageCoins: 0, above900: 0, below900: 0,
+        sortedAccounts: [], closestTo900: null, distribution: { "< 900": 0, ">= 900": 0, ">= 1800": 0, ">= 2700": 0, ">= 3600": 0, ">= 4500": 0 },
+        totalGrowth: 0, totalDecline: 0, bestGrowth: { name: "-", diff: 0 }, worstDecline: { name: "-", diff: 0 }
+      };
+    }
+
+    const totalAccounts = accounts.length;
+    const totalCoins = accounts.reduce((sum, a) => sum + a.currentCoins, 0);
+    const averageCoins = totalAccounts > 0 ? Math.round(totalCoins / totalAccounts) : 0;
+    
+    const above900 = accounts.filter(a => a.currentCoins >= 900).length;
+    const below900 = accounts.filter(a => a.currentCoins < 900).length;
+    
+    const sortedAccounts = [...accounts].sort((a, b) => b.currentCoins - a.currentCoins);
+    const closestTo900 = [...accounts]
+      .filter(a => a.currentCoins < 900)
+      .sort((a, b) => (900 - a.currentCoins) - (900 - b.currentCoins))[0];
+
+    const distribution = getGoalDistribution(accounts);
+
+    let totalGrowth = 0;
+    let totalDecline = 0;
+    let bestGrowth = { name: "-", diff: 0 };
+    let worstDecline = { name: "-", diff: 0 };
+
+    accounts.forEach(acc => {
+      const logs = coinLogs.filter(l => l.accountId === acc.id).sort((a, b) => b.id - a.id);
+      if (logs.length > 0) {
+        const lastLog = logs[0];
+        const diff = acc.currentCoins - lastLog.previousBalance;
+        if (diff > bestGrowth.diff) bestGrowth = { name: acc.name, diff };
+        if (diff < worstDecline.diff) worstDecline = { name: acc.name, diff };
+      }
+    });
+
+    coinLogs.forEach(log => {
+      const diff = log.newBalance - log.previousBalance;
+      if (diff > 0) totalGrowth += diff;
+      if (diff < 0) totalDecline += Math.abs(diff);
+    });
+
+    return {
+      totalAccounts, totalCoins, averageCoins, above900, below900,
+      sortedAccounts, closestTo900, distribution,
+      totalGrowth, totalDecline, bestGrowth, worstDecline
+    };
+  }, [accounts, coinLogs]);
+
+  const { 
+    totalAccounts, totalCoins, averageCoins, above900, below900, 
+    sortedAccounts, closestTo900, distribution, 
+    totalGrowth, totalDecline, bestGrowth, worstDecline 
+  } = stats;
+
+  const backupMeta = settings?.find(s => s.key === "backupMeta")?.value;
+  let showBackupWarning = false;
+  if (!dismissedWarning && settings) {
+    if (!backupMeta?.lastBackupDate) {
+      showBackupWarning = true;
+    } else {
+      const daysSince = (Date.now() - new Date(backupMeta.lastBackupDate).getTime()) / 86400000;
+      if (daysSince > 14) showBackupWarning = true;
+    }
+  }
 
   if (!accounts || !coinLogs) {
     return (
@@ -35,47 +109,6 @@ export default function Dashboard() {
     );
   }
 
-  const sortedAccounts = [...accounts].sort((a, b) => b.currentCoins - a.currentCoins);
-  
-  // KPIs
-  const totalAccounts = accounts.length;
-  const totalCoins = accounts.reduce((sum, a) => sum + a.currentCoins, 0);
-  const averageCoins = totalAccounts > 0 ? Math.round(totalCoins / totalAccounts) : 0;
-  
-  const above900 = accounts.filter(a => a.currentCoins >= 900).length;
-  const below900 = accounts.filter(a => a.currentCoins < 900).length;
-  
-  const highestAccount = sortedAccounts[0];
-  const lowestAccount = sortedAccounts[sortedAccounts.length - 1];
-  
-  const closestTo900 = [...accounts]
-    .filter(a => a.currentCoins < 900)
-    .sort((a, b) => (900 - a.currentCoins) - (900 - b.currentCoins))[0];
-
-  const distribution = getGoalDistribution(accounts);
-
-  // Growth & Decline (from coinLogs variations)
-  let totalGrowth = 0;
-  let totalDecline = 0;
-  
-  let bestGrowth = { name: "-", diff: 0 };
-  let worstDecline = { name: "-", diff: 0 };
-
-  accounts.forEach(acc => {
-    const logs = coinLogs.filter(l => l.accountId === acc.id).sort((a, b) => b.id - a.id);
-    if (logs.length > 0) {
-      const lastLog = logs[0];
-      const diff = acc.currentCoins - lastLog.previousBalance;
-      if (diff > bestGrowth.diff) bestGrowth = { name: acc.name, diff };
-      if (diff < worstDecline.diff) worstDecline = { name: acc.name, diff };
-    }
-  });
-
-  coinLogs.forEach(log => {
-    const diff = log.newBalance - log.previousBalance;
-    if (diff > 0) totalGrowth += diff;
-    if (diff < 0) totalDecline += Math.abs(diff);
-  });
 
   return (
     <div className="max-w-7xl mx-auto pb-12 space-y-8">
@@ -88,20 +121,38 @@ export default function Dashboard() {
         ]}
       />
 
+      {showBackupWarning && (
+        <div className="pro-card p-4 bg-warn/10 border-warn/20 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <svg className="w-6 h-6 text-warn" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            <div>
+              <p className="text-sm font-bold text-warn">Sauvegarde Recommandée</p>
+              <p className="text-xs text-textdim mt-0.5">Aucune sauvegarde récente trouvée (&gt;14 jours). Protégez vos données.</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link to="/settings/data-management" className="btn-secondary text-xs">Aller au Centre de Sauvegarde</Link>
+            <button onClick={() => setDismissedWarning(true)} className="p-2 text-textdim hover:text-white transition-colors">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Row 1: Core Financials */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <ProCard title="Total Coins" value={totalCoins.toLocaleString()} sub={`${totalAccounts} comptes actifs`} />
-        <ProCard title="Moyenne par Compte" value={averageCoins.toLocaleString()} sub="Coins / compte" />
-        <ProCard title="Croissance Globale" value={`+${totalGrowth.toLocaleString()}`} color="text-accent" sub="Total des gains historiques" />
-        <ProCard title="Pertes Globales" value={`-${totalDecline.toLocaleString()}`} color="text-red-400" sub="Total des dépenses/pertes" />
+        <StatCard label="Total Coins" value={totalCoins.toLocaleString()} sub={`${totalAccounts} comptes actifs`} />
+        <StatCard label="Moyenne par Compte" value={averageCoins.toLocaleString()} sub="Coins / compte" />
+        <StatCard label="Croissance Globale" value={`+${totalGrowth.toLocaleString()}`} valueColor="text-accent" sub="Total des gains historiques" />
+        <StatCard label="Pertes Globales" value={`-${totalDecline.toLocaleString()}`} valueColor="text-red-400" sub="Total des dépenses/pertes" />
       </div>
 
       {/* Row 2: Bilan Comparison Upgrade */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <ProCard title="Comptes Prêts (≥900)" value={above900} sub={`${Math.round((above900/totalAccounts)*100)}% du portfolio`} color="text-accent" />
-        <ProCard title="Comptes à Risque (<900)" value={below900} sub={`${Math.round((below900/totalAccounts)*100)}% du portfolio`} color="text-warn" />
-        <ProCard title="Meilleure Croissance" value={`+${bestGrowth.diff}`} sub={bestGrowth.name} color="text-accent" />
-        <ProCard title="Pire Déclin" value={`${worstDecline.diff}`} sub={worstDecline.name} color="text-red-400" />
+        <StatCard label="Comptes Prêts (≥900)" value={above900} sub={`${Math.round((above900/totalAccounts)*100)}% du portfolio`} valueColor="text-accent" />
+        <StatCard label="Comptes à Risque (<900)" value={below900} sub={`${Math.round((below900/totalAccounts)*100)}% du portfolio`} valueColor="text-warn" />
+        <StatCard label="Meilleure Croissance" value={`+${bestGrowth.diff}`} sub={bestGrowth.name} valueColor="text-accent" />
+        <StatCard label="Pire Déclin" value={`${worstDecline.diff}`} sub={worstDecline.name} valueColor="text-red-400" />
       </div>
 
       {/* Row 3: Goal Tier Distribution */}
@@ -252,18 +303,68 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-    </div>
-  );
-}
 
-function ProCard({ title, value, sub, color = "text-white" }) {
-  return (
-    <div className="pro-card justify-between gap-4 p-5 bg-surface">
-      <p className="text-xs font-bold text-textdim uppercase tracking-wider">{title}</p>
-      <div>
-        <p className={`text-3xl font-black tracking-tight mb-1 truncate ${color}`}>{value}</p>
-        <p className="text-xs font-medium text-textdim truncate">{sub}</p>
+      {/* ═══════════════════════════════════════════════════════
+          FEATURE 9: GOAL COMMAND CENTER
+          ═══════════════════════════════════════════════════════ */}
+      <div className="pro-card bg-gradient-to-br from-panel to-ink p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            <svg className="w-5 h-5 text-warn" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            Accounts Close To Goal
+          </h2>
+          <button
+            onClick={() => setShowGoalRadar(!showGoalRadar)}
+            className="btn-secondary text-xs flex items-center gap-1.5"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /></svg>
+            {showGoalRadar ? 'Close Radar' : 'Open Goal Radar'}
+          </button>
+        </div>
+
+        {(() => {
+          const closeToGoal = [...accounts]
+            .filter(a => a.currentCoins < 900)
+            .map(a => ({ ...a, distance: 900 - a.currentCoins }))
+            .sort((a, b) => a.distance - b.distance)
+            .slice(0, 6);
+
+          if (closeToGoal.length === 0) {
+            return (
+              <p className="text-sm text-textdim py-4 text-center border border-dashed border-border rounded-xl">
+                All accounts have reached the 900 goal! 🎉
+              </p>
+            );
+          }
+
+          return (
+            <div className="space-y-2">
+              {closeToGoal.map(acc => {
+                const pct = Math.round((acc.currentCoins / 900) * 100);
+                return (
+                  <div key={acc.id} className="flex items-center gap-3 p-3 rounded-xl bg-ink border border-white/5 hover:border-white/10 transition-colors">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-bold text-white truncate">{acc.name}</span>
+                        <span className="text-sm font-bold text-warn">{acc.distance} <span className="text-[10px] text-textdim font-normal">coins left</span></span>
+                      </div>
+                      <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-warn to-accent rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                    <span className="text-xs font-mono text-textdim shrink-0">{pct}%</span>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
       </div>
+
+      {/* Goal Radar (toggled by button) */}
+      {showGoalRadar && (
+        <GoalRadar accounts={accounts} coinLogs={coinLogs} />
+      )}
     </div>
   );
 }
@@ -271,7 +372,7 @@ function ProCard({ title, value, sub, color = "text-white" }) {
 function TierWidget({ title, count, total, color }) {
   const pct = total > 0 ? Math.round((count / total) * 100) : 0;
   return (
-    <div className="bg-background p-3 rounded-lg border border-border">
+    <div className="bg-background p-3 rounded-lg border border-border flex flex-col justify-between">
       <p className="text-[10px] text-textdim font-bold tracking-wider mb-1 uppercase">{title}</p>
       <div className="flex items-end gap-2">
         <span className={`text-2xl font-black ${color}`}>{count}</span>

@@ -1,10 +1,21 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
+import { useNavigate } from "react-router-dom";
 import { db } from "../db.js";
 import { useToast } from "../components/ui/ToastContext.jsx";
 import { useConfirm } from "../components/ui/ConfirmContext.jsx";
 import { resetAllAccounts } from "../accountActions.js";
 import HeroHeader from "../components/ui/HeroHeader.jsx";
+import {
+  createBackup,
+  downloadBackup,
+  restoreBackup,
+  verifyBackup,
+  getBackupStatus,
+  formatBytes,
+} from "../utils/backupActions.js";
+import { getStorageInsights } from "../utils/systemEngine.js";
+import { triggerDesktopNotification } from "../utils/desktopNotifier.js";
 
 const TABLES = [
   "accounts",
@@ -21,14 +32,32 @@ const TABLES = [
 export default function DataManagement() {
   const toast = useToast();
   const confirm = useConfirm();
+  const navigate = useNavigate();
 
   const accounts = useLiveQuery(() => db.accounts.toArray(), []);
   const coinLogs = useLiveQuery(() => db.coinLogs.toArray(), []);
   const spinLogs = useLiveQuery(() => db.spinLogs.toArray(), []);
   const auditLogs = useLiveQuery(() => db.auditLogs.toArray(), []);
+  const settings = useLiveQuery(() => db.settings.toArray(), []);
 
   const [dangerConfirm, setDangerConfirm] = useState("");
   const [isFactoryResetting, setIsFactoryResetting] = useState(false);
+
+  // Backup state
+  const [backupStatus, setBackupStatus] = useState(null);
+  const [lastBackupBlob, setLastBackupBlob] = useState(null);
+
+  // Storage insights state
+  const [storageData, setStorageData] = useState(null);
+
+  // Integrity Check
+  const [integrityResults, setIntegrityResults] = useState(null);
+
+  // Load backup status & storage insights
+  useEffect(() => {
+    getBackupStatus().then(setBackupStatus);
+    getStorageInsights().then(setStorageData);
+  }, [accounts, coinLogs, spinLogs, auditLogs]);
 
   // Helper to log actions
   const logSystemAction = async (actionType, details) => {
@@ -38,6 +67,75 @@ export default function DataManagement() {
       details
     });
   };
+
+  // ----- BACKUP ACTIONS -----
+  async function handleCreateBackup() {
+    try {
+      const blob = await createBackup();
+      setLastBackupBlob(blob);
+      const status = await getBackupStatus();
+      setBackupStatus(status);
+      toast("Backup created successfully.", "success");
+    } catch (e) {
+      toast("Error creating backup: " + e.message, "error");
+    }
+  }
+
+  async function handleDownloadBackup() {
+    try {
+      let blob = lastBackupBlob;
+      if (!blob) {
+        blob = await createBackup();
+        setLastBackupBlob(blob);
+      }
+      await downloadBackup(blob);
+      toast("Backup downloaded.", "success");
+      
+      triggerDesktopNotification('Backup réussi', 'Vos données ont été sauvegardées en local.');
+    } catch (e) {
+      toast("Error downloading backup: " + e.message, "error");
+    }
+  }
+
+  async function handleRestoreBackup() {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const confirmed = await confirm({
+        title: "Restore Backup",
+        message: "This will REPLACE all current data with the backup. This action is irreversible. Continue?",
+        confirmLabel: "Restore",
+        cancelLabel: "Cancel",
+        isDanger: true
+      });
+
+      if (!confirmed) return;
+
+      try {
+        const count = await restoreBackup(file);
+        toast(`Backup restored: ${count} tables imported.`, "success");
+        const status = await getBackupStatus();
+        setBackupStatus(status);
+      } catch (err) {
+        toast("Restore error: " + err.message, "error");
+      }
+    };
+    input.click();
+  }
+
+  async function handleVerifyBackup() {
+    try {
+      const result = await verifyBackup();
+      setBackupStatus(prev => ({ ...prev, health: result.health, healthDetails: result.details }));
+      toast(`Backup verification: ${result.health} — ${result.details}`, result.health === "Healthy" ? "success" : "warn");
+    } catch (e) {
+      toast("Verification error: " + e.message, "error");
+    }
+  }
 
   // ----- EXPORT -----
   async function handleExportJSON() {
@@ -113,9 +211,33 @@ export default function DataManagement() {
     toast("Analytics recalculated successfully", "success");
   }
 
+  async function handleIntegrityCheck() {
+    toast("Analyse de l'intégrité en cours...", "info");
+    const results = [];
+    
+    // 1. Account balance vs logs
+    for (const acc of accounts) {
+      const logs = coinLogs.filter(l => l.accountId === acc.id).sort((a,b) => b.id - a.id);
+      if (logs.length > 0 && logs[0].newBalance !== acc.currentCoins) {
+        results.push({ type: "warn", msg: `Désynchronisation solde: ${acc.name} (Solde Actuel: ${acc.currentCoins}, Dernier Log: ${logs[0].newBalance})` });
+      }
+    }
+
+    // 2. Orphaned Spin Logs
+    const accIds = accounts.map(a => a.id);
+    const orphans = spinLogs.filter(s => !accIds.includes(s.accountId));
+    if (orphans.length > 0) results.push({ type: "warn", msg: `${orphans.length} tirage(s) orphelin(s) lié(s) à des comptes supprimés.` });
+
+    if (results.length === 0) {
+      results.push({ type: "success", msg: "Base de données parfaitement saine. Aucune anomalie détectée." });
+    }
+
+    setIntegrityResults(results);
+    toast("Analyse terminée.", "success");
+  }
+
   // ----- FACTORY RESET -----
   async function handleFactoryReset() {
-    // Step 1: Backup JSON prompt
     const backupConfirmed = await confirm({
       title: "Exporter les données avant suppression ?",
       message: "Nous recommandons fortement de télécharger un backup JSON avant de tout effacer.",
@@ -128,8 +250,6 @@ export default function DataManagement() {
       await handleExportJSON();
     }
 
-    // Double confirmation requires user to type "RESET EFAPP" in the prompt
-    // For this, we'll use a local state to reveal the final danger button
     setIsFactoryResetting(true);
   }
 
@@ -155,13 +275,16 @@ export default function DataManagement() {
   }
 
   // --- RENDERING ---
-  if (!accounts || !coinLogs || !spinLogs || !auditLogs) {
+  if (!accounts || !coinLogs || !spinLogs || !auditLogs || !settings) {
     return (
       <div className="flex justify-center py-20">
         <div className="w-8 h-8 border-2 border-white/10 border-t-white rounded-full animate-spin"></div>
       </div>
     );
   }
+
+  const healthColor = backupStatus?.health === "Healthy" ? "text-accent" : backupStatus?.health === "Warning" ? "text-warn" : "text-danger";
+  const healthBg = backupStatus?.health === "Healthy" ? "bg-accent/10 border-accent/20" : backupStatus?.health === "Warning" ? "bg-warn/10 border-warn/20" : "bg-danger/10 border-danger/20";
 
   return (
     <div className="max-w-4xl mx-auto pb-12 space-y-8">
@@ -170,24 +293,153 @@ export default function DataManagement() {
         description="Application Reset Center & Gestion des données (Local First)."
       />
 
-      {/* 1. DATA OVERVIEW */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="pro-card p-4">
-          <p className="text-[10px] font-bold text-textdim uppercase tracking-widest mb-1">Accounts</p>
-          <p className="text-2xl font-black text-white">{accounts.length}</p>
+      {/* ═══════════════════════════════════════════════════════
+          FEATURE 10: QUICK ACTION HUB
+          ═══════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        {[
+          { label: "Export JSON", icon: "M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z", onClick: handleExportJSON, color: "text-blue-400", bg: "bg-blue-400/10" },
+          { label: "Backup", icon: "M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10", onClick: handleCreateBackup, color: "text-accent", bg: "bg-accent/10" },
+          { label: "Recalculate", icon: "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15", onClick: handleRecalculateAnalytics, color: "text-purple-400", bg: "bg-purple-400/10" },
+          { label: "Recovery", icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z", onClick: () => navigate("/settings"), color: "text-warn", bg: "bg-warn/10" },
+          { label: "Goal Radar", icon: "M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z", onClick: () => navigate("/"), color: "text-pink-400", bg: "bg-pink-400/10" },
+          { label: "Epic Calc", icon: "M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z", onClick: () => navigate("/epic-calculator"), color: "text-cyan-400", bg: "bg-cyan-400/10" },
+        ].map(action => (
+          <button
+            key={action.label}
+            onClick={action.onClick}
+            className="pro-card p-4 items-center text-center gap-3 hover:scale-[1.03] active:scale-[0.97] transition-all duration-200 cursor-pointer group"
+          >
+            <div className={`w-10 h-10 rounded-xl ${action.bg} flex items-center justify-center mx-auto group-hover:scale-110 transition-transform`}>
+              <svg className={`w-5 h-5 ${action.color}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={action.icon} />
+              </svg>
+            </div>
+            <p className="text-xs font-bold text-white mt-1">{action.label}</p>
+          </button>
+        ))}
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════
+          FEATURE 1: BACKUP CENTER PRO
+          ═══════════════════════════════════════════════════════ */}
+      <div className="pro-card p-6 bg-gradient-to-br from-surface to-background">
+        <h2 className="text-lg font-bold text-white mb-5 flex items-center gap-2">
+          <svg className="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" /></svg>
+          Backup Center
+        </h2>
+
+        {/* Backup KPIs */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+          <div className="p-3 bg-ink rounded-xl border border-white/5">
+            <p className="text-[10px] font-bold text-textdim uppercase tracking-widest mb-1">Last Backup</p>
+            <p className="text-sm font-bold text-white truncate">
+              {backupStatus?.lastBackupDate
+                ? new Date(backupStatus.lastBackupDate).toLocaleDateString()
+                : "Never"}
+            </p>
+          </div>
+          <div className="p-3 bg-ink rounded-xl border border-white/5">
+            <p className="text-[10px] font-bold text-textdim uppercase tracking-widest mb-1">Backup Count</p>
+            <p className="text-sm font-bold text-white">{backupStatus?.backupCount || 0}</p>
+          </div>
+          <div className="p-3 bg-ink rounded-xl border border-white/5">
+            <p className="text-[10px] font-bold text-textdim uppercase tracking-widest mb-1">Backup Size</p>
+            <p className="text-sm font-bold text-white">{backupStatus?.backupSize ? formatBytes(backupStatus.backupSize) : "—"}</p>
+          </div>
+          <div className="p-3 bg-ink rounded-xl border border-white/5">
+            <p className="text-[10px] font-bold text-textdim uppercase tracking-widest mb-1">Backup Health</p>
+            <p className={`text-sm font-bold ${healthColor}`}>{backupStatus?.health || "Unknown"}</p>
+          </div>
         </div>
-        <div className="pro-card p-4">
-          <p className="text-[10px] font-bold text-textdim uppercase tracking-widest mb-1">Coin Logs</p>
-          <p className="text-2xl font-black text-white">{coinLogs.length}</p>
+
+        {/* Backup Status Badge */}
+        <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border mb-5 ${healthBg}`}>
+          <div className={`w-2 h-2 rounded-full ${backupStatus?.health === "Healthy" ? "bg-accent" : backupStatus?.health === "Warning" ? "bg-warn" : "bg-danger"}`} />
+          <span className={`text-xs font-bold ${healthColor}`}>Backup Status: {backupStatus?.health || "Unknown"}</span>
+          {backupStatus?.healthDetails && <span className="text-[10px] text-textdim ml-2">— {backupStatus.healthDetails}</span>}
         </div>
-        <div className="pro-card p-4">
-          <p className="text-[10px] font-bold text-textdim uppercase tracking-widest mb-1">Spin Logs</p>
-          <p className="text-2xl font-black text-white">{spinLogs.length}</p>
+
+        {/* Backup Actions */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <button onClick={handleCreateBackup} className="btn-secondary text-sm flex items-center justify-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+            Create
+          </button>
+          <button onClick={handleDownloadBackup} className="btn-secondary text-sm flex items-center justify-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+            Download
+          </button>
+          <button onClick={handleRestoreBackup} className="btn-secondary text-sm flex items-center justify-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+            Restore
+          </button>
+          <button onClick={handleVerifyBackup} className="btn-secondary text-sm flex items-center justify-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            Verify
+          </button>
         </div>
-        <div className="pro-card p-4">
-          <p className="text-[10px] font-bold text-textdim uppercase tracking-widest mb-1">Audit Logs</p>
-          <p className="text-2xl font-black text-white">{auditLogs.length}</p>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════
+          FEATURE 3: STORAGE INSIGHTS
+          ═══════════════════════════════════════════════════════ */}
+      <div className="pro-card p-6">
+        <h2 className="text-lg font-bold text-white mb-5 flex items-center gap-2">
+          <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" /></svg>
+          Storage Insights
+        </h2>
+
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+          {[
+            { label: "Accounts", value: storageData?.counts?.accounts ?? accounts.length },
+            { label: "Coin Logs", value: storageData?.counts?.coinLogs ?? coinLogs.length },
+            { label: "Spin Logs", value: storageData?.counts?.spinLogs ?? spinLogs.length },
+            { label: "Audit Logs", value: storageData?.counts?.auditLogs ?? auditLogs.length },
+            { label: "IndexedDB Size", value: storageData ? formatBytes(storageData.estimatedSize) : "..." },
+          ].map(item => (
+            <div key={item.label} className="p-3 bg-ink rounded-xl border border-white/5">
+              <p className="text-[10px] font-bold text-textdim uppercase tracking-widest mb-1">{item.label}</p>
+              <p className="text-lg font-black text-white">{item.value}</p>
+            </div>
+          ))}
         </div>
+
+        {/* Database Composition Chart */}
+        {storageData && storageData.totalRecords > 0 && (
+          <div>
+            <p className="text-xs font-bold text-textdim uppercase tracking-widest mb-3">Database Composition</p>
+            {/* Stacked bar */}
+            <div className="h-4 rounded-full overflow-hidden flex bg-ink border border-white/5">
+              {storageData.composition.accounts > 0 && (
+                <div className="h-full bg-blue-500 transition-all duration-500" style={{ width: `${storageData.composition.accounts}%` }} title={`Accounts ${storageData.composition.accounts}%`} />
+              )}
+              {storageData.composition.coinLogs > 0 && (
+                <div className="h-full bg-accent transition-all duration-500" style={{ width: `${storageData.composition.coinLogs}%` }} title={`Coin Logs ${storageData.composition.coinLogs}%`} />
+              )}
+              {storageData.composition.spinLogs > 0 && (
+                <div className="h-full bg-purple-500 transition-all duration-500" style={{ width: `${storageData.composition.spinLogs}%` }} title={`Spin Logs ${storageData.composition.spinLogs}%`} />
+              )}
+              {storageData.composition.auditLogs > 0 && (
+                <div className="h-full bg-warn transition-all duration-500" style={{ width: `${storageData.composition.auditLogs}%` }} title={`Audit Logs ${storageData.composition.auditLogs}%`} />
+              )}
+            </div>
+            {/* Legend */}
+            <div className="flex flex-wrap gap-4 mt-3">
+              {[
+                { label: "Accounts", pct: storageData.composition.accounts, color: "bg-blue-500" },
+                { label: "Coin Logs", pct: storageData.composition.coinLogs, color: "bg-accent" },
+                { label: "Spin Logs", pct: storageData.composition.spinLogs, color: "bg-purple-500" },
+                { label: "Audit Logs", pct: storageData.composition.auditLogs, color: "bg-warn" },
+              ].map(item => (
+                <div key={item.label} className="flex items-center gap-2">
+                  <div className={`w-2.5 h-2.5 rounded-sm ${item.color}`} />
+                  <span className="text-[10px] text-textdim font-medium">{item.label} <span className="text-white font-bold">{item.pct}%</span></span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 2. MAINTENANCE */}
@@ -332,6 +584,29 @@ export default function DataManagement() {
           <p className="text-sm text-textdim py-8 text-center border border-dashed border-border rounded-xl">
             Aucun historique de réinitialisation enregistré.
           </p>
+        )}
+      </div>
+
+
+      {/* 6. INTEGRITY CHECK CENTER */}
+      <div className="pro-card p-6 bg-surface">
+        <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+          <svg className="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+          Integrity Check Center
+        </h2>
+        <p className="text-sm text-textdim mb-4">Vérifie la cohérence des données internes (Diagnostic uniquement).</p>
+        <button onClick={handleIntegrityCheck} className="btn-secondary w-full md:w-auto text-sm">
+          Lancer le diagnostic
+        </button>
+
+        {integrityResults && (
+          <div className="mt-5 space-y-2">
+            {integrityResults.map((res, i) => (
+              <div key={i} className={`p-3 rounded-lg border text-sm font-medium ${res.type === 'success' ? 'bg-accent/10 border-accent/20 text-accent' : 'bg-warn/10 border-warn/20 text-warn'}`}>
+                {res.msg}
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>

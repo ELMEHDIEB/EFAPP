@@ -46,11 +46,16 @@ export function CommandPalette() {
     // 1. Navigation Actions
     const navs = [
       { id: "nav-dashboard", label: "Aller au Dashboard", sub: "Navigation", action: () => navigate("/") },
+      { id: "nav-bilan", label: "Consulter le Bilan", sub: "Navigation", action: () => navigate("/bilan-tracker") },
       { id: "nav-accounts", label: "Gérer les Comptes", sub: "Navigation", action: () => navigate("/accounts") },
       { id: "nav-spin", label: "Nouveau Spin Tracker", sub: "Navigation", action: () => navigate("/spin-tracker") },
+      { id: "nav-epic", label: "Epic Calculator", sub: "Navigation", action: () => navigate("/epic-calculator") },
       { id: "nav-journal", label: "Ouvrir le Journal Émotionnel", sub: "Navigation", action: () => navigate("/journal") },
       { id: "nav-analytics", label: "Consulter l'Analytics", sub: "Navigation", action: () => navigate("/analytics") },
+      { id: "nav-leaderboard", label: "Leaderboard", sub: "Navigation", action: () => navigate("/leaderboard") },
+      { id: "nav-achievements", label: "Achievements", sub: "Navigation", action: () => navigate("/achievements") },
       { id: "nav-settings", label: "Paramètres & Sécurité", sub: "Navigation", action: () => navigate("/settings") },
+      { id: "nav-data", label: "Data Management", sub: "Navigation", action: () => navigate("/settings/data-management") },
     ].filter(item => item.label.toLowerCase().includes(q) || item.sub.toLowerCase().includes(q));
 
     // 2. Accounts Search

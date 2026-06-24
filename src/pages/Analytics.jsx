@@ -620,7 +620,7 @@ export default function Analytics() {
                 
                 // Consistency
                 const byDate = {};
-                coinLogs.forEach(l => {
+                (coinLogs || []).forEach(l => {
                   if (!byDate[l.date]) byDate[l.date] = 0;
                   byDate[l.date] += (l.newBalance - l.previousBalance);
                 });
@@ -630,15 +630,12 @@ export default function Analytics() {
                 });
                 if (maxStreak >= 7) unlockedCount++;
 
-                // Discipline
-                if (Object.values(disciplineData).some(ds => ds.score >= 90 && !ds.isEvaluating)) unlockedCount++;
-
                 // Comeback
                 let comeback = false;
-                const accountIds = [...new Set(coinLogs.map(l => l.accountId))];
+                const accountIds = [...new Set((coinLogs || []).map(l => l.accountId))];
                 for (const accId of accountIds) {
                   let wentBelow500 = false;
-                  for (const log of coinLogs.filter(l => l.accountId === accId).sort((a, b) => new Date(a.date) - new Date(b.date))) {
+                  for (const log of (coinLogs || []).filter(l => l.accountId === accId).sort((a, b) => new Date(a.date) - new Date(b.date))) {
                     if (log.newBalance < 500) wentBelow500 = true;
                     if (wentBelow500 && log.newBalance >= 900) { comeback = true; break; }
                   }
@@ -647,7 +644,7 @@ export default function Analytics() {
                 if (comeback) unlockedCount++;
 
                 // Marathon
-                if (accounts.some(a => a.createdAt && (Date.now() - new Date(a.createdAt).getTime()) >= 30 * 86400000)) unlockedCount++;
+                if ((accounts || []).some(a => a.createdAt && (Date.now() - new Date(a.createdAt).getTime()) >= 30 * 86400000)) unlockedCount++;
 
                 const progress = Math.round((unlockedCount / 6) * 100);
 

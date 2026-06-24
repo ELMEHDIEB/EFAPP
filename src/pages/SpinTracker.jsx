@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { db } from "../db.js";
 import { createSpin, getProtection900Status, classifyImpulseRisk, getSpentThisWeek } from "../spinActions.js";
 import { getLossSupport } from "../utils/psychEngine.js";
+import { coinsToSpins, spinsToCoins, isValidSpinCost } from "../utils/spinUtils.js";
 
 const EMOTIONS = ["Excité", "Curieux", "Frustré", "Ennuyé", "Stressé", "Confiant"];
 
@@ -111,6 +112,26 @@ function SpinWizard({ accounts, onComplete, onCancel }) {
   const [isEmergencyCooldown, setIsEmergencyCooldown] = useState(false);
   const [cooldownRemaining, setCooldownRemaining] = useState(0);
 
+  // Good Decision Journal Modal
+  const [showGoodDecisionModal, setShowGoodDecisionModal] = useState(false);
+  const [goodDecisionReason, setGoodDecisionReason] = useState("");
+
+  const handleCoinsChange = (e) => {
+    const val = e.target.value;
+    setCoinsSpent(val);
+    if (val !== "") {
+      setSpinsCount(coinsToSpins(val).toString());
+    }
+  };
+
+  const handleSpinsChange = (e) => {
+    const val = e.target.value;
+    setSpinsCount(val);
+    if (val !== "") {
+      setCoinsSpent(spinsToCoins(val).toString());
+    }
+  };
+
   const selectedAccount = accounts.find(a => a.id === accountId);
   const protectionStatus = getProtection900Status(selectedAccount);
   const riskLabel = classifyImpulseRisk({ wasPlanned, emotionBefore });
@@ -158,6 +179,7 @@ function SpinWizard({ accounts, onComplete, onCancel }) {
     if (!packName.trim()) return setError("Le nom du pack est requis.");
     if (Number(coinsSpent) <= 0) return setError("Le coût doit être supérieur à 0.");
     if (Number(spinsCount) <= 0) return setError("Le nombre de tirages doit être supérieur à 0.");
+    if (!isValidSpinCost(coinsSpent)) return setError("Le coût (coins) doit être un multiple de 100.");
     if (selectedAccount && selectedAccount.currentCoins < Number(coinsSpent)) {
       return setError("Fonds insuffisants.");
     }
@@ -209,6 +231,66 @@ function SpinWizard({ accounts, onComplete, onCancel }) {
   // Determine if this spin requires emergency mode (Impulsive, Under 900, or Exceeds Weekly Limit)
   const isHighRisk = isDangerPostSpin || riskLabel !== "Rational" || exceedsWeeklyLimit;
 
+  const handleCancelClick = () => {
+    if (step >= 2 && isHighRisk) {
+      setShowGoodDecisionModal(true);
+    } else {
+      onCancel();
+    }
+  };
+
+  const submitGoodDecision = async () => {
+    try {
+      await db.goodDecisionLogs.add({
+        spinId: null,
+        date: new Date().toISOString(),
+        accountId,
+        reason: goodDecisionReason || "Choix rationnel de dernière minute"
+      });
+    } catch (e) {
+      console.error(e);
+    }
+    setShowGoodDecisionModal(false);
+    onCancel();
+  };
+
+  const skipGoodDecision = () => {
+    setShowGoodDecisionModal(false);
+    onCancel();
+  };
+
+  if (showGoodDecisionModal) {
+    return (
+      <div className="max-w-xl mx-auto py-12">
+        <div className="pro-card p-6 bg-ink border border-accent/20">
+          <div className="flex justify-center mb-4">
+            <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center">
+              <svg className="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+            </div>
+          </div>
+          <h2 className="text-xl font-bold text-center text-white mb-2">Excellente décision !</h2>
+          <p className="text-sm text-center text-textdim mb-6">
+            Vous avez choisi d'annuler un tirage potentiellement risqué. Prenez une seconde pour noter pourquoi vous avez changé d'avis. Cela renforcera votre discipline.
+          </p>
+          <textarea 
+            className="input w-full min-h-[100px] mb-4" 
+            placeholder="Qu'est-ce qui vous a fait changer d'avis ? (ex: Je préfère garder mes coins pour le prochain pack)"
+            value={goodDecisionReason}
+            onChange={e => setGoodDecisionReason(e.target.value)}
+          />
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button onClick={submitGoodDecision} className="btn-primary flex-1">
+              Enregistrer ma victoire
+            </button>
+            <button onClick={skipGoodDecision} className="btn-secondary sm:w-1/3">
+              Passer
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-2xl mx-auto py-4">
       <div className="mb-6 flex items-center justify-between">
@@ -216,7 +298,7 @@ function SpinWizard({ accounts, onComplete, onCancel }) {
           <h1 className="text-2xl font-bold text-white tracking-tight">Nouveau Spin</h1>
           <p className="text-sm text-textdim mt-1">Étape {step} sur 4</p>
         </div>
-        <button onClick={onCancel} className="text-textdim hover:text-white transition-colors">
+        <button onClick={handleCancelClick} className="text-textdim hover:text-white transition-colors">
           ✕ Annuler
         </button>
       </div>
@@ -326,7 +408,7 @@ function SpinWizard({ accounts, onComplete, onCancel }) {
                   min="100"
                   step="100"
                   value={coinsSpent}
-                  onChange={e => setCoinsSpent(e.target.value)}
+                  onChange={handleCoinsChange}
                   className="input py-3 font-semibold text-danger"
                 />
               </label>
@@ -336,7 +418,7 @@ function SpinWizard({ accounts, onComplete, onCancel }) {
                   type="number"
                   min="1"
                   value={spinsCount}
-                  onChange={e => setSpinsCount(e.target.value)}
+                  onChange={handleSpinsChange}
                   className="input py-3"
                 />
               </label>

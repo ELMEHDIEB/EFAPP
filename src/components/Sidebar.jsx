@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { tokens } from "../styles/designTokens";
@@ -16,6 +16,7 @@ const NAV_GROUPS = [
     label: "ANALYTICS",
     items: [
       { to: "/analytics", label: "Analytics", icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" },
+      { to: "/activity-timeline", label: "Activity Timeline", icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" },
       { to: "/leaderboard", label: "Leaderboard", icon: "M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" },
       { to: "/achievements", label: "Achievements", icon: "M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" },
     ]
@@ -37,8 +38,26 @@ const NAV_GROUPS = [
 ];
 
 export default function Sidebar() {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  // Persist collapse state in localStorage (UI preference only)
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    return localStorage.getItem("sidebarCollapsed") === "true";
+  });
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem("sidebarCollapsed", isCollapsed);
+  }, [isCollapsed]);
+
+  // Close mobile drawer on Escape key
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === "Escape" && isMobileOpen) {
+        setIsMobileOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [isMobileOpen]);
 
   const openCommandPalette = () => {
     window.dispatchEvent(new Event("open-command-palette"));
@@ -56,13 +75,14 @@ export default function Sidebar() {
           </div>
           {!isCollapsed && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 overflow-hidden whitespace-nowrap">
-              <p className="text-sm font-bold text-white tracking-wide">EFAPP</p>
-              <p className="text-[10px] text-textdim uppercase tracking-widest font-medium">V5.2</p>
+              <p className="text-sm font-black tracking-widest text-white">EFAPP <span className="text-[10px] text-accent ml-1 font-bold">V5.4</span></p>
             </motion.div>
           )}
           <button 
             onClick={() => setIsCollapsed(!isCollapsed)} 
             className="hidden md:flex text-textdim hover:text-white p-1 rounded hover:bg-surfaceInteractive shrink-0 ml-auto"
+            tabIndex={0}
+            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={isCollapsed ? "M13 5l7 7-7 7M5 5l7 7-7 7" : "M11 19l-7-7 7-7m8 14l-7-7 7-7"} />
@@ -74,6 +94,10 @@ export default function Sidebar() {
         <div 
           onClick={openCommandPalette}
           className={`mb-6 flex items-center justify-between p-2.5 bg-surfaceElevated border border-border cursor-pointer hover:border-textdim/50 ${tokens.radius.md} ${tokens.animations.normal}`}
+          role="button"
+          tabIndex={0}
+          aria-label="Open command palette"
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openCommandPalette(); } }}
         >
           <div className="flex items-center gap-2 text-textdim overflow-hidden">
             <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -113,9 +137,9 @@ export default function Sidebar() {
                         />
                       )}
                       <svg className={`w-5 h-5 shrink-0 ${isActive ? 'text-white' : 'text-textdim group-hover:text-white'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d={item.icon} />
                       </svg>
-                      {!isCollapsed && <span className="whitespace-nowrap">{item.label}</span>}
+                      {!isCollapsed && <span className="whitespace-nowrap ml-1 font-semibold tracking-wide">{item.label}</span>}
                     </>
                   )}
                 </NavLink>
@@ -129,11 +153,13 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Mobile Toggle */}
+      {/* Mobile Toggle — always visible on small screens */}
       <div className="md:hidden fixed top-4 left-4 z-50">
         <button 
           onClick={() => setIsMobileOpen(true)}
           className="p-2 bg-surfaceElevated border border-border rounded-lg text-white"
+          tabIndex={0}
+          aria-label="Open navigation drawer"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -141,14 +167,36 @@ export default function Sidebar() {
         </button>
       </div>
 
-      {/* Desktop Sidebar */}
-      <motion.nav 
-        animate={{ width: isCollapsed ? 80 : 256 }}
-        transition={{ duration: 0.3, ease: "easeInOut" }}
-        className="hidden md:flex shrink-0 bg-background border-r border-border h-full flex-col overflow-hidden"
+      {/* Desktop & Tablet Sidebar */}
+      <nav 
+        className={`hidden md:flex shrink-0 bg-background border-r border-border h-full flex-col overflow-hidden transition-[width] duration-300 ease-in-out ${
+          isCollapsed ? "w-[80px] lg:w-[90px]" : "w-[240px] lg:w-[280px]"
+        }`}
+        role="navigation"
+        aria-label="Main navigation"
       >
         {sidebarContent}
-      </motion.nav>
+      </nav>
+
+      {/* Floating Expand Button — visible only when sidebar is collapsed on desktop */}
+      <AnimatePresence>
+        {isCollapsed && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => setIsCollapsed(false)}
+            className="hidden md:flex fixed bottom-6 left-6 z-[60] w-10 h-10 items-center justify-center bg-surfaceElevated border border-border rounded-full text-textdim hover:text-white hover:bg-surfaceInteractive shadow-lg transition-colors duration-150"
+            tabIndex={0}
+            aria-label="Expand sidebar"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+            </svg>
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* Mobile Drawer */}
       <AnimatePresence>
@@ -167,6 +215,8 @@ export default function Sidebar() {
               exit={{ x: "-100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
               className="fixed top-0 left-0 bottom-0 w-64 bg-background border-r border-border z-[101] md:hidden"
+              role="navigation"
+              aria-label="Mobile navigation"
             >
               {sidebarContent}
             </motion.nav>

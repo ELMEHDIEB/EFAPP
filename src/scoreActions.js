@@ -116,3 +116,45 @@ export function getDisciplineLabel(score) {
   if (score >= 50) return "Average";
   return "Risky";
 }
+
+/**
+ * Calculates the Discipline Score for a specific period.
+ * Useful for comparing current month vs previous month.
+ */
+export async function getDisciplineScoreForPeriod(accountId, startDateIso, endDateIso) {
+  const account = await db.accounts.get(accountId);
+  if (!account) return { score: 100, isEvaluating: true };
+
+  const spins = await db.spinLogs
+    .where("accountId")
+    .equals(accountId)
+    .filter(log => log.date >= startDateIso && log.date <= endDateIso)
+    .toArray();
+
+  if (spins.length === 0) return { score: 100, isEvaluating: true };
+
+  const spinIds = spins.map(s => s.id);
+  const regrets = await db.regretLogs
+    .where("spinId")
+    .anyOf(spinIds)
+    .toArray();
+
+  let score = 100;
+  
+  spins.forEach(spin => {
+    const risk = classifyImpulseRisk(spin);
+    if (risk === "FOMO" || risk === "Chase Behavior") score -= 10;
+    else if (risk === "Emotional") score -= 5;
+  });
+
+  const regretCount = regrets.filter(r => r.regret === true).length;
+  score -= (regretCount * 5);
+
+  const impulsiveSpins = spins.filter(s => classifyImpulseRisk(s) !== "Rational");
+  const streakBonus = (spins.length - impulsiveSpins.length) * 2; 
+  score += streakBonus;
+
+  score = Math.max(0, Math.min(100, score));
+
+  return { score, isEvaluating: spins.length < 3 };
+}

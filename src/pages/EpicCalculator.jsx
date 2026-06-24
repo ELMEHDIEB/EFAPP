@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import HeroHeader from "../components/ui/HeroHeader.jsx";
+import { coinsToSpins } from "../utils/spinUtils.js";
 
 function choose(n, k) {
   if (k < 0 || k > n) return 0;
@@ -16,9 +17,8 @@ export default function EpicCalculator() {
   const [totalPlayers, setTotalPlayers] = useState(150);
   const [epicPlayers, setEpicPlayers] = useState(3);
   const [currentCoins, setCurrentCoins] = useState(900);
-  const [costPerSpin, setCostPerSpin] = useState(100);
 
-  const spinsAvailable = Math.floor(currentCoins / costPerSpin);
+  const spinsAvailable = coinsToSpins(currentCoins);
 
   const { prob0, probAtLeast1, chanceRating, antiFomo, targets } = useMemo(() => {
     // Hypergeometric Distribution
@@ -78,12 +78,12 @@ export default function EpicCalculator() {
       }
       targetsInfo.push({
         pct: tgt * 100,
-        coins: requiredSpins * costPerSpin
+        coins: requiredSpins * 100
       });
     }
 
     return { prob0: prob0Pct, probAtLeast1: probAtLeast1Pct, chanceRating: rating, antiFomo: fomo, targets: targetsInfo };
-  }, [totalPlayers, epicPlayers, currentCoins, costPerSpin, spinsAvailable]);
+  }, [totalPlayers, epicPlayers, currentCoins, spinsAvailable]);
 
   // Monte Carlo Validation
   const [mcResult, setMcResult] = useState(null);
@@ -141,11 +141,7 @@ export default function EpicCalculator() {
           </div>
           <div className="flex flex-col gap-1 mt-4 border-t border-white/5 pt-4">
             <label className="text-xs font-bold text-textdim uppercase">Coins Actuels</label>
-            <input type="number" min="0" value={currentCoins} onChange={e => setCurrentCoins(Number(e.target.value))} className="input" />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-bold text-textdim uppercase">Coût par Spin</label>
-            <input type="number" min="1" value={costPerSpin} onChange={e => setCostPerSpin(Number(e.target.value))} className="input" />
+            <input type="number" min="0" step="100" value={currentCoins} onChange={e => setCurrentCoins(Number(e.target.value))} className="input" />
           </div>
         </div>
 

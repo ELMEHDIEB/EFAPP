@@ -1,4 +1,5 @@
 import { db } from "./db.js";
+import { checkMilestoneCrossed } from "./utils/milestoneEngine.js";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -56,6 +57,7 @@ export async function applyCoinChange(accountId, { action, reason, amount, linke
   const amt = Number(amount);
   if (!Number.isFinite(amt) || amt < 0) throw new Error("Montant invalide.");
 
+  const oldBalance = account.currentCoins;
   let newBalance;
   if (action === "ADD") newBalance = account.currentCoins + amt;
   else if (action === "REMOVE") {
@@ -77,6 +79,9 @@ export async function applyCoinChange(accountId, { action, reason, amount, linke
       linkedSpinId: linkedSpinId || null
     });
   });
+
+  // Trigger milestone check globally
+  checkMilestoneCrossed(oldBalance, newBalance, account.targetCoins);
 
   return newBalance;
 }
