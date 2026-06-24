@@ -4,6 +4,7 @@ import { db } from "../db.js";
 import { useToast } from "../components/ui/ToastContext.jsx";
 import { useConfirm } from "../components/ui/ConfirmContext.jsx";
 import { resetAllAccounts } from "../accountActions.js";
+import HeroHeader from "../components/ui/HeroHeader.jsx";
 
 const TABLES = [
   "accounts",
@@ -163,11 +164,11 @@ export default function DataManagement() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto pb-12 animate-in fade-in duration-500 space-y-8">
-      <header>
-        <h1 className="text-3xl font-bold text-white tracking-tight">Data Management</h1>
-        <p className="text-sm text-textdim mt-1">Application Reset Center & Gestion des données (Local First).</p>
-      </header>
+    <div className="max-w-4xl mx-auto pb-12 space-y-8">
+      <HeroHeader 
+        title="Data Management"
+        description="Application Reset Center & Gestion des données (Local First)."
+      />
 
       {/* 1. DATA OVERVIEW */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

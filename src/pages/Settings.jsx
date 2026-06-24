@@ -5,6 +5,7 @@ import { db } from "../db.js";
 import { useToast } from "../components/ui/ToastContext.jsx";
 import { useConfirm } from "../components/ui/ConfirmContext.jsx";
 import { sha256 } from "../utils/crypto.js";
+import HeroHeader from "../components/ui/HeroHeader.jsx";
 
 const TABLES = [
   "accounts",
@@ -113,13 +114,11 @@ export default function Settings() {
   }
 
   return (
-    <div className="max-w-lg pb-12">
-      <h1 className="text-xl font-medium text-white mb-2">Paramètres</h1>
-      <p className="text-sm text-textdim mb-6">
-        Tes données sont stockées localement dans ce navigateur (IndexedDB) et persistent
-        automatiquement entre les sessions. Fais un backup régulièrement pour pouvoir
-        restaurer tes données si tu changes de machine ou de navigateur.
-      </p>
+    <div className="max-w-4xl mx-auto pb-12 space-y-6">
+      <HeroHeader 
+        title="Paramètres"
+        description="Tes données sont stockées localement dans ce navigateur (IndexedDB) et persistent automatiquement entre les sessions."
+      />
 
       <div className="pro-card mb-6">
         <h2 className="pro-heading mb-6">

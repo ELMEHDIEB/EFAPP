@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db.js";
 import { getDisciplineScore } from "../scoreActions.js";
+import HeroHeader from "../components/ui/HeroHeader.jsx";
+import EmptyState from "../components/ui/EmptyState.jsx";
 
 const ACHIEVEMENT_DEFS = [
   {
@@ -163,16 +165,26 @@ export default function Achievements() {
     );
   }
 
+  if (accounts.length === 0) {
+    return (
+      <EmptyState 
+        variant="empty"
+        title="Aucun compte"
+        description="Créez des comptes pour commencer à débloquer des achievements."
+      />
+    );
+  }
+
   const unlocked = achievements.filter(a => a.unlocked).length;
   const total = achievements.length;
   const progressPct = total > 0 ? Math.round((unlocked / total) * 100) : 0;
 
   return (
-    <div className="max-w-4xl mx-auto pb-12 animate-in fade-in duration-500 space-y-8">
-      <header>
-        <h1 className="text-3xl font-bold text-white tracking-tight">Achievements</h1>
-        <p className="text-sm text-textdim mt-1">Débloquez des récompenses en atteignant vos objectifs.</p>
-      </header>
+    <div className="max-w-4xl mx-auto pb-12 space-y-8">
+      <HeroHeader 
+        title="Achievements"
+        description="Débloquez des récompenses en atteignant vos objectifs."
+      />
 
       {/* Progress Overview */}
       <div className="pro-card p-6 bg-gradient-to-br from-panel to-ink border-accent/20">

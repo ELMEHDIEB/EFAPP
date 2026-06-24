@@ -4,6 +4,8 @@ import { db } from "../db.js";
 import { getNextGoal } from "../utils/goalEngine.js";
 import { getHealthScore } from "../utils/healthScore.js";
 import DataTable from "../components/ui/DataTable.jsx";
+import HeroHeader from "../components/ui/HeroHeader.jsx";
+import EmptyState from "../components/ui/EmptyState.jsx";
 
 export default function Leaderboard() {
   const accounts = useLiveQuery(() => db.accounts.toArray(), []);
@@ -65,6 +67,16 @@ export default function Leaderboard() {
     );
   }
 
+  if (accounts.length === 0) {
+    return (
+      <EmptyState 
+        variant="empty"
+        title="Aucun compte configuré"
+        description="Ajoutez des comptes pour voir le classement."
+      />
+    );
+  }
+
   const statusColors = {
     Elite: { bg: "bg-accent/10", text: "text-accent", border: "border-accent/20" },
     Good: { bg: "bg-white/5", text: "text-white", border: "border-white/10" },
@@ -80,7 +92,7 @@ export default function Leaderboard() {
       sortable: false,
       align: 'center',
       render: (row, i) => (
-        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold mx-auto ${i < 3 ? 'bg-white/10 text-white' : 'text-textdim'}`}>
+        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold mx-auto ${i < 3 ? 'bg-surfaceElevated text-white' : 'text-textdim'}`}>
           {i + 1}
         </div>
       )
@@ -93,7 +105,7 @@ export default function Leaderboard() {
         <div className="flex items-center gap-2">
           <span className="font-bold text-white">{row.name}</span>
           {row.groupTag && (
-            <span className="text-[9px] uppercase tracking-widest text-textdim bg-white/5 rounded px-1.5 py-0.5">{row.groupTag}</span>
+            <span className="text-[9px] uppercase tracking-widest text-textdim bg-surfaceElevated rounded px-1.5 py-0.5">{row.groupTag}</span>
           )}
         </div>
       )
@@ -114,7 +126,7 @@ export default function Leaderboard() {
       align: 'right',
       render: (row) => (
         <div className="flex items-center justify-end gap-2">
-          <div className="w-16 h-1.5 bg-ink rounded-full overflow-hidden">
+          <div className="w-16 h-1.5 bg-background rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full ${row.progressPct >= 100 ? 'bg-accent' : row.progressPct >= 50 ? 'bg-warn' : 'bg-danger'}`}
               style={{ width: `${Math.min(row.progressPct, 100)}%` }}
@@ -151,11 +163,11 @@ export default function Leaderboard() {
   ];
 
   return (
-    <div className="max-w-6xl mx-auto pb-12 animate-in fade-in duration-500 space-y-6">
-      <header>
-        <h1 className="text-3xl font-bold text-white tracking-tight">Leaderboard</h1>
-        <p className="text-sm text-textdim mt-1">Classement des comptes par performance, discipline et progression.</p>
-      </header>
+    <div className="max-w-6xl mx-auto pb-12 space-y-6">
+      <HeroHeader 
+        title="Leaderboard"
+        description="Classement des comptes par performance, discipline et progression."
+      />
 
       {/* Filters */}
       <div className="pro-card p-4 flex flex-col md:flex-row gap-3 items-stretch md:items-center">

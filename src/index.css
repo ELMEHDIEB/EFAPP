@@ -7,6 +7,7 @@
 html, body, #root {
   height: 100%;
   font-family: 'Inter', sans-serif;
+  @apply bg-background text-white antialiased;
 }
 
 * {
@@ -29,11 +30,11 @@ html, body, #root {
 @layer components {
   /* Surface and Cards */
   .card {
-    @apply bg-panel border border-border rounded-xl shadow-none overflow-hidden transition-all duration-300;
+    @apply bg-surface border border-border rounded-xl shadow-none overflow-hidden transition-all duration-300;
   }
   
   .pro-card {
-    @apply bg-panel border border-border rounded-xl p-6 transition-all duration-300 shadow-[0_4px_24px_rgba(0,0,0,0.4)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.6)] hover:border-white/10 flex flex-col;
+    @apply bg-surface border border-border rounded-xl p-6 transition-all duration-300 shadow-[0_4px_24px_rgba(0,0,0,0.4)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.6)] hover:border-textdim/20 flex flex-col;
   }
 
   .pro-heading {
@@ -50,7 +51,7 @@ html, body, #root {
   }
   
   .btn-secondary {
-    @apply btn-base bg-panel2 text-white border border-border hover:bg-border focus-visible:ring-textdim hover:text-white transition-colors;
+    @apply btn-base bg-surfaceElevated text-white border border-border hover:bg-border focus-visible:ring-textdim hover:text-white transition-colors;
   }
   
   .btn-danger {
@@ -59,12 +60,12 @@ html, body, #root {
 
   /* Form Elements */
   .input {
-    @apply bg-panel2 border border-border rounded-lg px-3 py-2.5 text-sm text-white placeholder-textdim transition-all duration-200 outline-none hover:border-textdim/50 focus:border-white focus:ring-1 focus:ring-white;
+    @apply bg-surfaceElevated border border-border rounded-lg px-3 py-2.5 text-sm text-white placeholder-textdim transition-all duration-200 outline-none hover:border-textdim/50 focus:border-white focus:ring-1 focus:ring-white;
   }
 
   /* Progress Bars */
   .progress-track {
-    @apply w-full h-1.5 bg-panel2 rounded-full overflow-hidden;
+    @apply w-full h-1.5 bg-surfaceElevated rounded-full overflow-hidden;
   }
   
   .progress-fill {

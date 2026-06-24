@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import HeroHeader from "../components/ui/HeroHeader.jsx";
 
 function choose(n, k) {
   if (k < 0 || k > n) return 0;
@@ -120,11 +121,11 @@ export default function EpicCalculator() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto pb-12 animate-in fade-in duration-500 space-y-6">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight text-white">Epic Calculator</h1>
-        <p className="text-textdim mt-1">Évaluation stochastique stricte. Ne laissez plus la chance au hasard.</p>
-      </header>
+    <div className="max-w-3xl mx-auto pb-12 space-y-6">
+      <HeroHeader 
+        title="Epic Calculator"
+        description="Évaluation stochastique stricte. Ne laissez plus la chance au hasard."
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="pro-card p-6 border-white/5 space-y-4">
