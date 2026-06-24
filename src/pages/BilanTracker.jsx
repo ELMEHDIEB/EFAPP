@@ -11,6 +11,8 @@ import { getNextGoal } from "../utils/goalEngine.js";
 import { getMotivationMessage } from "../utils/motivationEngine.js";
 import { getDisciplineScore, getDisciplineLabel } from "../scoreActions.js";
 import DataTable from "../components/ui/DataTable.jsx";
+import HeroHeader from "../components/ui/HeroHeader.jsx";
+import EmptyState from "../components/ui/EmptyState.jsx";
 
 export default function BilanTracker() {
   const showToast = useToast();
@@ -228,7 +230,7 @@ export default function BilanTracker() {
         const { progressPct } = getNextGoal(row.currentCoins);
         return (
           <div className="flex items-center justify-end gap-2">
-            <div className="w-16 h-1.5 bg-ink rounded-full overflow-hidden">
+            <div className="w-16 h-1.5 bg-background rounded-full overflow-hidden">
               <div 
                 className={`h-full rounded-full transition-all duration-500 ${progressPct >= 100 ? 'bg-accent' : progressPct >= 50 ? 'bg-warn' : 'bg-danger'}`}
                 style={{ width: `${Math.min(progressPct, 100)}%` }}
@@ -338,23 +340,23 @@ export default function BilanTracker() {
   const hasAccounts = accounts?.length > 0;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500 pb-10">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight text-white">Bilan & Tracker</h1>
-        <p className="text-textdim mt-1">Centre de contrôle principal — suivi comptable et gestion du patrimoine.</p>
-      </header>
+    <div className="max-w-7xl mx-auto space-y-6 pb-10">
+      <HeroHeader 
+        title="Bilan & Tracker"
+        description="Centre de contrôle principal — suivi comptable et gestion du patrimoine."
+      />
 
       {!hasAccounts ? (
-        <div className="flex flex-col items-center justify-center p-12 bg-ink border border-dashed border-white/10 rounded-2xl text-center h-[50vh]">
-          <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-4">
-            <svg className="w-8 h-8 text-textdim" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
-          </div>
-          <h2 className="text-xl font-bold text-white mb-2">Aucun compte disponible</h2>
-          <p className="text-sm text-textdim mb-6 max-w-sm">Créez votre premier compte pour commencer à suivre votre progression et vos bilans.</p>
-          <button onClick={() => window.location.href = '/accounts'} className="btn-primary py-2 px-6">
-            Créer un compte
-          </button>
-        </div>
+        <EmptyState 
+          variant="empty"
+          title="Aucun compte disponible"
+          description="Créez votre premier compte pour commencer à suivre votre progression et vos bilans."
+          action={
+            <button onClick={() => window.location.href = '/accounts'} className="btn-primary py-2 px-6">
+              Créer un compte
+            </button>
+          }
+        />
       ) : (
         <>
           {/* HERO KPI SECTION */}

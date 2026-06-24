@@ -12,6 +12,8 @@ import {
 import { useToast } from "../components/ui/ToastContext.jsx";
 import { useConfirm } from "../components/ui/ConfirmContext.jsx";
 import { getMotivationMessage } from "../utils/motivationEngine.js";
+import HeroHeader from "../components/ui/HeroHeader.jsx";
+import EmptyState from "../components/ui/EmptyState.jsx";
 
 export default function Accounts() {
   const accounts = useLiveQuery(() => db.accounts.orderBy("name").toArray(), []);
@@ -34,37 +36,28 @@ export default function Accounts() {
 
   return (
     <div className="max-w-4xl">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-semibold text-white tracking-tight">Comptes</h1>
-          <p className="text-sm text-textdim mt-1">{accounts.length} compte(s) suivi(s)</p>
-        </div>
-        <button
-          onClick={() => {
-            setError("");
-            setShowAdd(true);
-          }}
-          className="btn-primary"
-        >
-          + Ajouter un compte
-        </button>
-      </div>
+      <HeroHeader 
+        title="Comptes"
+        description="Gérez votre portefeuille de comptes."
+        stats={[ { label: "Comptes actifs", value: accounts.length } ]}
+        actions={
+          <button onClick={() => { setError(""); setShowAdd(true); }} className="btn-primary">
+            + Ajouter
+          </button>
+        }
+      />
 
       {accounts.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in">
-          <div className="w-16 h-16 mb-6 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
-            <svg className="w-8 h-8 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-          </div>
-          <h2 className="text-xl font-bold text-white tracking-tight mb-2">Aucun compte configuré</h2>
-          <p className="text-sm text-textdim max-w-sm mb-6">
-            Commencez par ajouter votre compte principal ou secondaire pour initier le suivi des coins et de la progression.
-          </p>
-          <button onClick={() => { setError(""); setShowAdd(true); }} className="btn-primary">
-            Créer un compte
-          </button>
-        </div>
+        <EmptyState 
+          variant="empty"
+          title="Aucun compte configuré"
+          description="Commencez par ajouter votre compte principal ou secondaire pour initier le suivi des coins et de la progression."
+          action={
+            <button onClick={() => { setError(""); setShowAdd(true); }} className="btn-primary">
+              Créer un compte
+            </button>
+          }
+        />
       )}
 
       <div className="grid gap-4">

@@ -4,16 +4,27 @@ export default {
   theme: {
     extend: {
       colors: {
-        ink: "#000000",       // Pure Black app background
-        panel: "#0A0A0A",     // Almost black card background
-        panel2: "#111111",    // Elevated surfaces
-        border: "#27272a",    // Very subtle borders
+        // Legacy colors (kept for existing components during transition)
+        ink: "#000000",       
+        panel: "#0A0A0A",     
+        panel2: "#111111",    
+        
+        // Premium SaaS Dark Mode Surfaces (Linear/Vercel style)
+        background: "#000000",          // Deepest level (Page background)
+        surface: "#0A0A0A",             // Base level (Cards, panels)
+        surfaceElevated: "#141414",     // Elevated level (Modals, popovers, active states)
+        surfaceInteractive: "#1F1F1F",  // Interactive level (Hover states, pressed buttons)
+        border: "#27272A",              // Zinc 800
+
+        // Semantic Colors
         accent: "#10b981",    // Emerald 500
         accent2: "#059669",   // Emerald 600
         warn: "#f59e0b",      // Amber 500
         danger: "#ef4444",    // Red 500
-        textdim: "#a1a1aa",   // Zinc 400
-        white: "#fafafa",     // Zinc 50
+        success: "#10B981",   // Emerald 500
+        textdim: "#A1A1AA",   // Zinc 400
+        textmuted: "#52525B", // Zinc 600
+        white: "#FAFAFA",     // Zinc 50
       },
       fontFamily: {
         mono: ["JetBrains Mono", "ui-monospace", "monospace"],

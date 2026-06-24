@@ -11,6 +11,8 @@ import ExportCenter from "../components/ExportCenter.jsx";
 import DataTable from "../components/ui/DataTable.jsx";
 import GoalRadar from "../components/GoalRadar.jsx";
 import MilestoneTimeline from "../components/MilestoneTimeline.jsx";
+import HeroHeader from "../components/ui/HeroHeader.jsx";
+import EmptyState from "../components/ui/EmptyState.jsx";
 
 // Couleurs de la charte graphique UI Pro Max
 const COLORS = ['#ffffff', '#888888', '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
@@ -144,24 +146,20 @@ export default function Analytics() {
 
   if (accounts.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-32 text-center animate-in fade-in">
-        <div className="w-20 h-20 mb-6 rounded-3xl bg-white/5 flex items-center justify-center">
-          <svg className="w-10 h-10 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-          </svg>
-        </div>
-        <h2 className="text-2xl font-bold text-white mb-2">Aucune donnée analytique</h2>
-        <p className="text-textdim">Créez des comptes et effectuez des transactions pour générer le bilan comptable.</p>
-      </div>
+      <EmptyState 
+        variant="empty"
+        title="Aucune donnée analytique"
+        description="Créez des comptes et effectuez des transactions pour générer le bilan comptable."
+      />
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto pb-12 animate-in fade-in duration-500 space-y-6">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold text-white tracking-tight">Analytics & Bilan</h1>
-        <p className="text-sm text-textdim mt-1">Analyse détaillée de l'évolution du portefeuille comptable.</p>
-      </header>
+    <div className="max-w-7xl mx-auto pb-12 space-y-6">
+      <HeroHeader 
+        title="Analytics & Bilan"
+        description="Analyse détaillée de l'évolution du portefeuille comptable."
+      />
 
       {/* Row 1: Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

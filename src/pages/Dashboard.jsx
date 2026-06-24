@@ -1,10 +1,13 @@
 import { useLiveQuery } from "dexie-react-hooks";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { db } from "../db.js";
 import { getNextGoal, getGoalDistribution } from "../utils/goalEngine.js";
 import { getPortfolioMotivation } from "../utils/motivationEngine.js";
+import HeroHeader from "../components/ui/HeroHeader.jsx";
+import EmptyState from "../components/ui/EmptyState.jsx";
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const accounts = useLiveQuery(() => db.accounts.toArray(), []);
   const coinLogs = useLiveQuery(() => db.coinLogs.toArray(), []);
 
@@ -17,7 +20,19 @@ export default function Dashboard() {
   }
 
   if (accounts.length === 0) {
-    return <DashboardEmptyState />;
+    return (
+      <EmptyState 
+        variant="empty"
+        title="Coin Manager Pro"
+        description="Votre plateforme comptable pour la gestion et le suivi du patrimoine eFootball."
+        action={
+          <button onClick={() => navigate("/accounts")} className="btn-primary flex items-center gap-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+            Créer un compte
+          </button>
+        }
+      />
+    );
   }
 
   const sortedAccounts = [...accounts].sort((a, b) => b.currentCoins - a.currentCoins);
@@ -43,8 +58,6 @@ export default function Dashboard() {
   let totalGrowth = 0;
   let totalDecline = 0;
   
-  // Find best growth and worst decline by looking at recent account changes
-  // Easiest way: look at the variation of currentCoins - last log's previousBalance
   let bestGrowth = { name: "-", diff: 0 };
   let worstDecline = { name: "-", diff: 0 };
 
@@ -65,31 +78,15 @@ export default function Dashboard() {
   });
 
   return (
-    <div className="max-w-7xl mx-auto pb-12 animate-in fade-in duration-500 space-y-8">
-      <header>
-        <h1 className="text-3xl font-bold text-white tracking-tight">Executive Dashboard</h1>
-        <p className="text-sm text-textdim mt-1">Vue d'ensemble financière et suivi du patrimoine.</p>
-        
-        {(() => {
-          const motivation = getPortfolioMotivation(accounts, coinLogs);
-          return (
-            <div className={`mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium ${
-              motivation.type === 'success' ? 'bg-accent/10 text-accent border-accent/20' :
-              motivation.type === 'warn' ? 'bg-warn/10 text-warn border-warn/20' :
-              'bg-white/5 text-textdim border-white/10'
-            }`}>
-              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={
-                  motivation.type === 'success' ? "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" :
-                  motivation.type === 'warn' ? "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" :
-                  "M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                } />
-              </svg>
-              {motivation.message}
-            </div>
-          );
-        })()}
-      </header>
+    <div className="max-w-7xl mx-auto pb-12 space-y-8">
+      <HeroHeader 
+        title="Executive Dashboard"
+        description="Vue d'ensemble financière et suivi du patrimoine."
+        stats={[
+          { label: "Accounts", value: totalAccounts, trend: "+12%", trendType: "positive" },
+          { label: "Coins", value: totalCoins }
+        ]}
+      />
 
       {/* Row 1: Core Financials */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -108,7 +105,7 @@ export default function Dashboard() {
       </div>
 
       {/* Row 3: Goal Tier Distribution */}
-      <div className="pro-card bg-panel p-6">
+      <div className="pro-card bg-surface p-6">
         <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-4">Portfolio Distribution (Tiers)</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <TierWidget title="< 900" count={distribution["< 900"]} total={totalAccounts} color="text-red-400" />
@@ -122,7 +119,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Multi-Goal Tracking */}
-        <div className="pro-card bg-panel p-6">
+        <div className="pro-card bg-surface p-6">
           <h2 className="text-lg font-bold text-white mb-6">Multi-Goal Tracking</h2>
           <div className="space-y-5">
             {sortedAccounts.slice(0, 8).map(acc => {
@@ -147,7 +144,7 @@ export default function Dashboard() {
                     </div>
                     <span className={`text-sm font-bold ${textClass}`}>{progressPct}%</span>
                   </div>
-                  <div className="h-2 bg-ink rounded-full overflow-hidden">
+                  <div className="h-2 bg-background rounded-full overflow-hidden">
                     <div 
                       className={`h-full rounded-full transition-all duration-500 ${colorClass}`} 
                       style={{ width: `${Math.min(100, progressPct)}%` }} 
@@ -164,15 +161,15 @@ export default function Dashboard() {
         </div>
 
         {/* Account Ranking System */}
-        <div className="pro-card bg-panel p-6">
+        <div className="pro-card bg-surface p-6">
           <h2 className="text-lg font-bold text-white mb-6">Classement des Comptes</h2>
           <div className="space-y-2">
             {sortedAccounts.map((acc, index) => {
               const isTop3 = index < 3;
               return (
-                <div key={acc.id} className="flex items-center justify-between p-3 rounded-lg bg-ink border border-border hover:border-white/10 transition-colors">
+                <div key={acc.id} className="flex items-center justify-between p-3 rounded-lg bg-background border border-border hover:border-textdim/20 transition-colors">
                   <div className="flex items-center gap-4">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${isTop3 ? 'bg-white/10 text-white' : 'bg-transparent text-textdim'}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${isTop3 ? 'bg-surfaceElevated text-white' : 'bg-transparent text-textdim'}`}>
                       #{index + 1}
                     </div>
                     <div>
@@ -196,7 +193,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           
           {/* Portfolio Health Score */}
-          <div className="pro-card bg-gradient-to-br from-panel to-ink p-6 border-accent/20">
+          <div className="pro-card bg-gradient-to-br from-surface to-background p-6 border-accent/20">
             <h3 className="text-xs font-bold text-accent uppercase tracking-wider mb-4 flex items-center gap-2">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>
               Health Score
@@ -211,7 +208,7 @@ export default function Dashboard() {
           </div>
 
           {/* Forecast Engine */}
-          <div className="pro-card bg-panel p-6">
+          <div className="pro-card bg-surface p-6">
             <h3 className="text-xs font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
               <svg className="w-4 h-4 text-textdim" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
               Forecast Engine
@@ -230,24 +227,24 @@ export default function Dashboard() {
           </div>
 
           {/* Smart Alerts */}
-          <div className="pro-card bg-panel p-6">
+          <div className="pro-card bg-surface p-6">
             <h3 className="text-xs font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
               <svg className="w-4 h-4 text-textdim" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
               Smart Alerts
             </h3>
             <div className="space-y-3">
               {above900 > 0 && (
-                <div className="bg-accent/10 border border-accent/20 rounded p-2 text-xs text-accent font-medium">
+                <div className="bg-success/10 border border-success/20 rounded p-2 text-xs text-success font-medium">
                   • {above900} compte(s) ont franchi le seuil des 900 coins. Prêt(s) pour le pass.
                 </div>
               )}
               {totalDecline > totalGrowth && (
-                <div className="bg-red-500/10 border border-red-500/20 rounded p-2 text-xs text-red-400 font-medium">
+                <div className="bg-danger/10 border border-danger/20 rounded p-2 text-xs text-danger font-medium">
                   • Attention : Les dépenses globales dépassent la croissance. Risque de déclin du portefeuille.
                 </div>
               )}
               {totalAccounts > 0 && totalDecline <= totalGrowth && above900 === 0 && (
-                <div className="bg-white/5 border border-white/10 rounded p-2 text-xs text-textdim font-medium">
+                <div className="bg-surfaceElevated border border-border rounded p-2 text-xs text-textdim font-medium">
                   • Croissance stable détectée. Maintenez vos efforts.
                 </div>
               )}
@@ -261,7 +258,7 @@ export default function Dashboard() {
 
 function ProCard({ title, value, sub, color = "text-white" }) {
   return (
-    <div className="pro-card justify-between gap-4 p-5 bg-panel">
+    <div className="pro-card justify-between gap-4 p-5 bg-surface">
       <p className="text-xs font-bold text-textdim uppercase tracking-wider">{title}</p>
       <div>
         <p className={`text-3xl font-black tracking-tight mb-1 truncate ${color}`}>{value}</p>
@@ -271,35 +268,10 @@ function ProCard({ title, value, sub, color = "text-white" }) {
   );
 }
 
-function DashboardEmptyState() {
-  return (
-    <div className="max-w-4xl mx-auto py-12 animate-in fade-in duration-700">
-      <div className="text-center mb-16">
-        <div className="w-24 h-24 mx-auto mb-8 rounded-3xl bg-gradient-to-br from-white/10 to-white/5 border border-white/10 flex items-center justify-center shadow-[0_0_60px_rgba(255,255,255,0.05)]">
-          <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
-        <h1 className="text-4xl font-black text-white tracking-tight mb-4">Coin Manager Pro</h1>
-        <p className="text-lg text-textdim max-w-2xl mx-auto leading-relaxed">
-          Votre plateforme comptable pour la gestion et le suivi du patrimoine eFootball.
-        </p>
-      </div>
-
-      <div className="flex justify-center">
-        <Link to="/accounts" className="btn-primary px-10 py-4 rounded-xl text-base tracking-wide flex items-center gap-3">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
-          Créer un compte
-        </Link>
-      </div>
-    </div>
-  );
-}
-
 function TierWidget({ title, count, total, color }) {
   const pct = total > 0 ? Math.round((count / total) * 100) : 0;
   return (
-    <div className="bg-ink p-3 rounded-lg border border-border">
+    <div className="bg-background p-3 rounded-lg border border-border">
       <p className="text-[10px] text-textdim font-bold tracking-wider mb-1 uppercase">{title}</p>
       <div className="flex items-end gap-2">
         <span className={`text-2xl font-black ${color}`}>{count}</span>
