@@ -1,0 +1,217 @@
+{
+  "electron/main.js": [],
+  "electron/preload.js": [],
+  "src/App.jsx": [
+    "src/components/ErrorBoundary.jsx",
+    "src/components/Sidebar.jsx",
+    "src/components/ui/CommandPalette.jsx",
+    "src/components/ui/ConfirmContext.jsx",
+    "src/components/ui/ToastContext.jsx",
+    "src/db.js",
+    "src/pages/Accounts.jsx",
+    "src/pages/Achievements.jsx",
+    "src/pages/ActivityTimeline.jsx",
+    "src/pages/Analytics.jsx",
+    "src/pages/BilanTracker.jsx",
+    "src/pages/Dashboard.jsx",
+    "src/pages/DataManagement.jsx",
+    "src/pages/EmotionalJournal.jsx",
+    "src/pages/EpicCalculator.jsx",
+    "src/pages/Leaderboard.jsx",
+    "src/pages/NotFound.jsx",
+    "src/pages/PinLock.jsx",
+    "src/pages/PostLossRecovery.jsx",
+    "src/pages/Settings.jsx",
+    "src/pages/SpinTracker.jsx"
+  ],
+  "src/accountActions.js": [
+    "src/db.js",
+    "src/utils/milestoneEngine.js"
+  ],
+  "src/components/AccountHistory.jsx": [
+    "src/db.js"
+  ],
+  "src/components/BulkBilanImport.jsx": [
+    "src/accountActions.js",
+    "src/components/ui/ConfirmContext.jsx",
+    "src/components/ui/ToastContext.jsx",
+    "src/db.js"
+  ],
+  "src/components/CommandCenter.jsx": [
+    "src/accountActions.js",
+    "src/components/ui/ToastContext.jsx",
+    "src/db.js"
+  ],
+  "src/components/ErrorBoundary.jsx": [],
+  "src/components/ExportCenter.jsx": [
+    "src/components/ui/ToastContext.jsx"
+  ],
+  "src/components/GoalRadar.jsx": [],
+  "src/components/MilestoneTimeline.jsx": [],
+  "src/components/Sidebar.jsx": [
+    "src/styles/designTokens.js"
+  ],
+  "src/components/ui/CommandPalette.jsx": [
+    "src/db.js"
+  ],
+  "src/components/ui/ConfirmContext.jsx": [],
+  "src/components/ui/DataTable.jsx": [],
+  "src/components/ui/EmptyState.jsx": [
+    "src/styles/designTokens.js",
+    "src/utils/motionPresets.js"
+  ],
+  "src/components/ui/HeroHeader.jsx": [
+    "src/styles/designTokens.js",
+    "src/utils/motionPresets.js"
+  ],
+  "src/components/ui/StatCard.jsx": [],
+  "src/components/ui/ToastContext.jsx": [],
+  "src/db.js": [],
+  "src/index.css": [],
+  "src/main.jsx": [
+    "src/App.jsx",
+    "src/index.css"
+  ],
+  "src/pages/Accounts.jsx": [
+    "src/accountActions.js",
+    "src/components/ui/ConfirmContext.jsx",
+    "src/components/ui/EmptyState.jsx",
+    "src/components/ui/HeroHeader.jsx",
+    "src/components/ui/ToastContext.jsx",
+    "src/db.js",
+    "src/utils/motivationEngine.js"
+  ],
+  "src/pages/Achievements.jsx": [
+    "src/components/ui/EmptyState.jsx",
+    "src/components/ui/HeroHeader.jsx",
+    "src/db.js",
+    "src/scoreActions.js",
+    "src/utils/achievementEngine.js"
+  ],
+  "src/pages/ActivityTimeline.jsx": [
+    "src/components/ui/HeroHeader.jsx",
+    "src/db.js"
+  ],
+  "src/pages/Analytics.jsx": [
+    "src/components/ExportCenter.jsx",
+    "src/components/GoalRadar.jsx",
+    "src/components/MilestoneTimeline.jsx",
+    "src/components/ui/DataTable.jsx",
+    "src/components/ui/EmptyState.jsx",
+    "src/components/ui/HeroHeader.jsx",
+    "src/db.js",
+    "src/utils/goalEngine.js",
+    "src/utils/healthScore.js"
+  ],
+  "src/pages/BilanTracker.jsx": [
+    "src/accountActions.js",
+    "src/components/AccountHistory.jsx",
+    "src/components/BulkBilanImport.jsx",
+    "src/components/CommandCenter.jsx",
+    "src/components/ui/ConfirmContext.jsx",
+    "src/components/ui/DataTable.jsx",
+    "src/components/ui/EmptyState.jsx",
+    "src/components/ui/HeroHeader.jsx",
+    "src/components/ui/ToastContext.jsx",
+    "src/db.js",
+    "src/scoreActions.js",
+    "src/utils/goalEngine.js",
+    "src/utils/motivationEngine.js"
+  ],
+  "src/pages/Dashboard.jsx": [
+    "src/components/GoalRadar.jsx",
+    "src/components/ui/EmptyState.jsx",
+    "src/components/ui/HeroHeader.jsx",
+    "src/components/ui/StatCard.jsx",
+    "src/db.js",
+    "src/utils/goalEngine.js",
+    "src/utils/motivationEngine.js"
+  ],
+  "src/pages/DataManagement.jsx": [
+    "src/accountActions.js",
+    "src/components/ui/ConfirmContext.jsx",
+    "src/components/ui/HeroHeader.jsx",
+    "src/components/ui/ToastContext.jsx",
+    "src/db.js",
+    "src/utils/backupActions.js",
+    "src/utils/desktopNotifier.js",
+    "src/utils/systemEngine.js"
+  ],
+  "src/pages/EmotionalJournal.jsx": [
+    "src/db.js",
+    "src/spinActions.js"
+  ],
+  "src/pages/EpicCalculator.jsx": [
+    "src/components/ui/HeroHeader.jsx",
+    "src/utils/spinUtils.js"
+  ],
+  "src/pages/Leaderboard.jsx": [
+    "src/components/ui/DataTable.jsx",
+    "src/components/ui/EmptyState.jsx",
+    "src/components/ui/HeroHeader.jsx",
+    "src/db.js",
+    "src/utils/goalEngine.js",
+    "src/utils/healthScore.js"
+  ],
+  "src/pages/NotFound.jsx": [],
+  "src/pages/PinLock.jsx": [
+    "src/db.js",
+    "src/utils/crypto.js"
+  ],
+  "src/pages/PostLossRecovery.jsx": [
+    "src/db.js",
+    "src/utils/goalEngine.js",
+    "src/utils/psychEngine.js"
+  ],
+  "src/pages/Settings.jsx": [
+    "src/components/ui/ConfirmContext.jsx",
+    "src/components/ui/HeroHeader.jsx",
+    "src/components/ui/ToastContext.jsx",
+    "src/db.js",
+    "src/scoreActions.js",
+    "src/utils/achievementEngine.js",
+    "src/utils/backupActions.js",
+    "src/utils/crypto.js",
+    "src/utils/desktopNotifier.js",
+    "src/utils/systemEngine.js"
+  ],
+  "src/pages/SpinTracker.jsx": [
+    "src/db.js",
+    "src/spinActions.js",
+    "src/utils/psychEngine.js",
+    "src/utils/spinUtils.js"
+  ],
+  "src/scoreActions.js": [
+    "src/db.js",
+    "src/spinActions.js"
+  ],
+  "src/spinActions.js": [
+    "src/accountActions.js",
+    "src/db.js"
+  ],
+  "src/styles/designTokens.js": [],
+  "src/utils/achievementEngine.js": [],
+  "src/utils/backupActions.js": [
+    "src/db.js"
+  ],
+  "src/utils/crypto.js": [],
+  "src/utils/desktopNotifier.js": [],
+  "src/utils/goalEngine.js": [],
+  "src/utils/healthScore.js": [
+    "src/db.js",
+    "src/scoreActions.js",
+    "src/utils/goalEngine.js"
+  ],
+  "src/utils/milestoneEngine.js": [],
+  "src/utils/motionPresets.js": [],
+  "src/utils/motivationEngine.js": [
+    "src/utils/goalEngine.js"
+  ],
+  "src/utils/psychEngine.js": [
+    "src/utils/goalEngine.js"
+  ],
+  "src/utils/spinUtils.js": [],
+  "src/utils/systemEngine.js": [
+    "src/db.js"
+  ]
+}

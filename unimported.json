@@ -1,0 +1,5 @@
+[
+  "electron/main.js",
+  "electron/preload.js",
+  "src/main.jsx"
+]
