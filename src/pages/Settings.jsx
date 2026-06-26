@@ -2,27 +2,15 @@ import { useState, useEffect, useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useNavigate } from "react-router-dom";
 import { db } from "../db.js";
-import { useToast } from "../components/ui/ToastContext.jsx";
-import { useConfirm } from "../components/ui/ConfirmContext.jsx";
+import { useToast } from "../hooks/useToast.js";
+import { useConfirm } from "../hooks/useConfirm.js";
 import { sha256 } from "../utils/crypto.js";
-import { getDisciplineScore } from "../scoreActions.js";
-import { computeAchievements } from "../utils/achievementEngine.js";
 import { getRecoveryReadiness, getSystemHealth, getRecommendations } from "../utils/systemEngine.js";
 import { createBackup, downloadBackup, restoreBackup } from "../utils/backupActions.js";
 import { triggerDesktopNotification } from "../utils/desktopNotifier.js";
 import HeroHeader from "../components/ui/HeroHeader.jsx";
 
-const TABLES = [
-  "accounts",
-  "coinLogs",
-  "spinLogs",
-  "spinPlayers",
-  "regretLogs",
-  "emotionalLogs",
-  "notifications",
-  "settings",
-  "auditLogs"
-];
+
 
 export default function Settings() {
   const toast = useToast();
@@ -45,8 +33,7 @@ export default function Settings() {
   // System Health state
   const [systemHealth, setSystemHealth] = useState(null);
 
-  // Discipline scores for achievements
-  const [disciplineScores, setDisciplineScores] = useState([]);
+
 
   useEffect(() => {
     if (!settings) return;
@@ -55,28 +42,9 @@ export default function Settings() {
 
   useEffect(() => {
     if (!accounts || accounts.length === 0) return;
-    let cancelled = false;
-    async function loadScores() {
-      const scores = [];
-      for (const acc of accounts) {
-        const result = await getDisciplineScore(acc.id);
-        scores.push(result);
-      }
-      if (!cancelled) setDisciplineScores(scores);
-    }
-    loadScores();
-    return () => { cancelled = true; };
   }, [accounts]);
 
-  // Achievement data
-  const achievements = useMemo(() => {
-    if (!accounts || !coinLogs) return [];
-    return computeAchievements(accounts, coinLogs, disciplineScores);
-  }, [accounts, coinLogs, disciplineScores]);
 
-  const achievementUnlocked = achievements.filter(a => a.unlocked).length;
-  const achievementTotal = achievements.length;
-  const achievementPct = achievementTotal > 0 ? Math.round((achievementUnlocked / achievementTotal) * 100) : 0;
 
   // Recovery Readiness
   const recoveryReadiness = useMemo(() => {
@@ -224,37 +192,7 @@ export default function Settings() {
         </div>
       )}
 
-      {/* ═══════════════════════════════════════════════════════
-          FEATURE 7: ACHIEVEMENT PROGRESS TRACKER
-          ═══════════════════════════════════════════════════════ */}
-      {achievementTotal > 0 && (
-        <div className="pro-card p-6 bg-gradient-to-br from-panel to-ink border-purple-500/10">
-          <h2 className="pro-heading mb-5">
-            <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
-            Achievements
-          </h2>
-          <div className="grid grid-cols-3 gap-4 mb-4">
-            <div className="text-center">
-              <p className="text-2xl font-black text-accent">{achievementUnlocked}</p>
-              <p className="text-[10px] text-textdim font-bold uppercase tracking-widest">Unlocked</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-black text-textdim">{achievementTotal - achievementUnlocked}</p>
-              <p className="text-[10px] text-textdim font-bold uppercase tracking-widest">Remaining</p>
-            </div>
-            <div className="text-center">
-              <p className={`text-2xl font-black ${achievementPct >= 100 ? 'text-accent' : 'text-white'}`}>{achievementPct}%</p>
-              <p className="text-[10px] text-textdim font-bold uppercase tracking-widest">Completion</p>
-            </div>
-          </div>
-          <div className="h-3 bg-ink rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-purple-500 to-accent transition-all duration-700"
-              style={{ width: `${achievementPct}%` }}
-            />
-          </div>
-        </div>
-      )}
+
 
       {/* Security & Privacy */}
       <div className="pro-card mb-6">
@@ -462,12 +400,20 @@ export default function Settings() {
         
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4">
           <div>
-            <p className="text-sm font-bold text-white mb-1">Application Reset Center</p>
-            <p className="text-xs text-textdim">Gérez vos données locales, sauvegardes, et réinitialisations système.</p>
+            <p className="text-sm font-bold text-white mb-1">Export & Import Center</p>
+            <p className="text-xs text-textdim">Gérez vos données locales, et vos sauvegardes de base de données.</p>
           </div>
-          <button onClick={() => navigate('/settings/data-management')} className="btn-secondary w-full md:w-auto">
-            Data Management
-          </button>
+          <div className="flex items-center gap-3 w-full md:w-auto">
+            <button onClick={exportBackup} className="btn-secondary w-full md:w-auto text-xs px-3 py-1.5 flex items-center justify-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+              Exporter
+            </button>
+            <label className="btn-secondary w-full md:w-auto text-xs px-3 py-1.5 flex items-center justify-center gap-2 cursor-pointer">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+              Importer
+              <input type="file" accept=".json" className="hidden" onChange={importBackup} />
+            </label>
+          </div>
         </div>
       </div>
 

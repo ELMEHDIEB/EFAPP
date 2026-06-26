@@ -16,6 +16,7 @@ Ouvre ensuite l'URL affichée dans le terminal (en général `http://localhost:5
 Toutes les données (comptes, soldes, historique) sont stockées dans **IndexedDB**, une base de données intégrée au navigateur, via la librairie Dexie.
 
 Concrètement :
+
 - Tu n'as **jamais besoin de réinsérer tes données**. Ferme l'onglet, redémarre ton ordinateur, relance `npm run dev` un autre jour : tout est encore là.
 - Les données vivent dans le navigateur **et le port** où tu as ouvert l'app (ex: `localhost:5173`). Si tu changes de navigateur ou de machine, utilise **Paramètres → Exporter un backup** puis **Importer** sur l'autre machine.
 - Rien n'est envoyé sur internet, tout reste en local.

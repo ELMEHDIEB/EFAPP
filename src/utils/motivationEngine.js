@@ -1,4 +1,4 @@
-export function getPortfolioMotivation(accounts, coinLogs) {
+export function getPortfolioMotivation(accounts, _coinLogs) {
   if (!accounts || accounts.length === 0) return { type: "info", message: "Aucun compte configuré." };
   
   const totalCoins = accounts.reduce((sum, a) => sum + a.currentCoins, 0);
@@ -14,7 +14,7 @@ export function getPortfolioMotivation(accounts, coinLogs) {
   return { type: "warn", message: "La constance est la clé. Continuez l'accumulation." };
 }
 
-export function getMotivationMessage(account, accounts, coinLogs) {
+export function getMotivationMessage(account, _accounts, _coinLogs) {
   if (!account) return { type: "info", message: "" };
   if (account.currentCoins >= account.targetCoins) {
     return { type: "success", message: "Objectif atteint ! Protégez votre progression." };

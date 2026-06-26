@@ -1,9 +1,12 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
-
-const ToastContext = createContext(null);
+import { useState, useCallback } from "react";
+import { ToastContext } from "../../hooks/useToast.js";
 
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
+
+  const removeToast = useCallback((id) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
 
   const addToast = useCallback((message, type = "default", duration = 4000) => {
     const id = Date.now().toString();
@@ -14,11 +17,9 @@ export function ToastProvider({ children }) {
         removeToast(id);
       }, duration);
     }
-  }, []);
+  }, [removeToast]);
 
-  const removeToast = useCallback((id) => {
-    setToasts(prev => prev.filter(t => t.id !== id));
-  }, []);
+
 
   return (
     <ToastContext.Provider value={addToast}>
@@ -53,10 +54,4 @@ export function ToastProvider({ children }) {
   );
 }
 
-export function useToast() {
-  const context = useContext(ToastContext);
-  if (!context) {
-    throw new Error("useToast must be used within a ToastProvider");
-  }
-  return context;
-}
+

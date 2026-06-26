@@ -178,12 +178,12 @@ export async function getSystemHealth(settingsArray) {
  * Generates contextual recommendations based on real app state.
  * Only returns recommendations that are relevant (unmet conditions).
  */
-export function getRecommendations(settingsArray, accounts, coinLogs, auditLogs) {
+export function getRecommendations(settings, accounts, coinLogs, _auditLogs) {
   const recommendations = [];
 
-  const pinSetting = settingsArray?.find(s => s.key === "pinLock");
-  const recoverySetting = settingsArray?.find(s => s.key === "recoveryHash");
-  const backupMeta = settingsArray?.find(s => s.key === "backupMeta");
+  const pinSetting = settings?.find(s => s.key === "pinLock");
+  const recoverySetting = settings?.find(s => s.key === "recoveryHash");
+  const backupMeta = settings?.find(s => s.key === "backupMeta");
 
   // 1. PIN not enabled
   if (!pinSetting?.value) {

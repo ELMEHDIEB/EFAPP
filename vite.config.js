@@ -13,14 +13,16 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  server: {
+    port: 5173,
+    strictPort: true,
+  },
   build: {
     rollupOptions: {
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom', 'framer-motion'],
-          db: ['dexie', 'dexie-react-hooks'],
-          charts: ['recharts'],
-          date: ['date-fns']
+          db: ['dexie', 'dexie-react-hooks']
         }
       }
     }

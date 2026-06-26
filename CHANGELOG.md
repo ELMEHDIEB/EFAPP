@@ -3,10 +3,12 @@
 ## 2026-06-24 — V1.1 Critical UX Fixes & Governance
 
 ### Fixed
-* **BUG-001**: Data Management navigation broken — route mismatch fixed (`/settings/data-management` → `/data-management`).
+
+* **BUG-001**: Data Management navigation broken — ghost route `/data-management` removed and features natively integrated into Settings.
 * **BUG-002**: Sidebar collapse state not persisted — added `localStorage` persistence, floating expand button, Escape key handler.
 
 ### Added
+
 * **HashRouter migration** — `BrowserRouter` replaced with `HashRouter` for Electron `file://` compatibility.
 * **NotFound page** — catch-all `*` route with 404 UI and navigation buttons.
 * **Sidebar floating expand button** — visible when collapsed, animated, keyboard-accessible.
@@ -16,6 +18,7 @@
 * **Keyboard accessibility** — ARIA labels, `tabIndex`, `role` attributes across sidebar.
 
 ### Documentation
+
 * `AUDIT_BEFORE_IMPLEMENTATION.md` — Full source-tree audit.
 * `ROOT_CAUSE_ANALYSIS.md` — Root cause for each bug fixed.
 * `DEXIE_AUDIT.md` — Dexie/IndexedDB performance audit.
@@ -30,6 +33,7 @@
 ## 2026-06-22
 
 ### Implemented
+
 * **Phase 3 - Advanced Behavioral Friction:**
   * Implemented Local PIN Lock mechanism (`settings.pinLock`).
   * Added optional Weekly Spend Limit configuration for accounts.
@@ -52,4 +56,5 @@
   * JSON Backup Import/Export functionality.
 
 ### Initial GitHub Repository Setup
+
 * Created Git repository and connected to GitHub.

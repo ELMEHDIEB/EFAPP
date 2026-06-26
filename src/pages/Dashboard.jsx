@@ -3,7 +3,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { Link, useNavigate } from "react-router-dom";
 import { db } from "../db.js";
 import { getNextGoal, getGoalDistribution } from "../utils/goalEngine.js";
-import { getPortfolioMotivation } from "../utils/motivationEngine.js";
+
 import HeroHeader from "../components/ui/HeroHeader.jsx";
 import EmptyState from "../components/ui/EmptyState.jsx";
 import StatCard from "../components/ui/StatCard.jsx";

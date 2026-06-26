@@ -1,5 +1,9 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
-const path = require('path');
+import { app, BrowserWindow, ipcMain, Notification } from 'electron';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -8,7 +12,8 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
-      contextIsolation: true
+      contextIsolation: true,
+      sandbox: true
     }
   });
 
@@ -36,6 +41,5 @@ app.on('window-all-closed', function () {
 
 // Setup minimal IPC to support the desktopNotifier.js
 ipcMain.on('show-notification', (event, title, body) => {
-  const { Notification } = require('electron');
   new Notification({ title, body }).show();
 });

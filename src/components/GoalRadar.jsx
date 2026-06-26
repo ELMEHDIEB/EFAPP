@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-export function getPriorityLevel(distance) {
+function getPriorityLevel(distance) {
   if (distance <= 100) return { label: "Critical", color: "text-accent bg-accent/10 border-accent/20" };
   if (distance <= 250) return { label: "High", color: "text-warn bg-warn/10 border-warn/20" };
   if (distance <= 500) return { label: "Medium", color: "text-blue-400 bg-blue-400/10 border-blue-400/20" };

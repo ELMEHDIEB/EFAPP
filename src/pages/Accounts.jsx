@@ -9,8 +9,8 @@ import {
   progressPercent,
   undoLastAction
 } from "../accountActions.js";
-import { useToast } from "../components/ui/ToastContext.jsx";
-import { useConfirm } from "../components/ui/ConfirmContext.jsx";
+import { useConfirm } from "../hooks/useConfirm.js";
+import { useToast } from "../hooks/useToast.js";
 import { getMotivationMessage } from "../utils/motivationEngine.js";
 import HeroHeader from "../components/ui/HeroHeader.jsx";
 import EmptyState from "../components/ui/EmptyState.jsx";
@@ -387,7 +387,7 @@ function AdjustBalanceModal({ account, onClose }) {
 function EditAccountModal({ account, onClose }) {
   const [name, setName] = useState(account.name);
   const [targetCoins, setTargetCoins] = useState(String(account.targetCoins));
-  const [weeklyLimit, setWeeklyLimit] = useState(String(account.weeklyLimit || 0));
+  const [weeklyLimit] = useState(account.weeklyLimit || "");
   const [groupTag, setGroupTag] = useState(account.groupTag || "");
   const [error, setError] = useState("");
 

@@ -60,12 +60,12 @@ export function getRecoveryPlan(account, coinLogs) {
       currentCoins: 0,
       progressPct: 0,
       distanceTo900: 900,
-      recoveryMessage: "Aucun compte sélectionné.",
+      recoveryMessage: "Veuillez sélectionner un compte.",
       estimatedDays: null
     };
   }
 
-  const { progressPct, remainingCoins } = getNextGoal(account.currentCoins);
+  const { progressPct } = getNextGoal(account.currentCoins);
   const distanceTo900 = account.currentCoins < 900 ? 900 - account.currentCoins : 0;
 
   // Calculate average daily gain from recent logs

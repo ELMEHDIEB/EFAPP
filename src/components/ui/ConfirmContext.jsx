@@ -1,6 +1,5 @@
-import React, { createContext, useContext, useState, useRef, useEffect, useCallback } from "react";
-
-const ConfirmContext = createContext(null);
+import { useState, useRef, useEffect, useCallback } from "react";
+import { ConfirmContext } from "../../hooks/useConfirm.js";
 
 export function ConfirmProvider({ children }) {
   const [confirmState, setConfirmState] = useState({
@@ -70,7 +69,7 @@ export function ConfirmProvider({ children }) {
     }
     
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [confirmState.isOpen, confirmState.onCancel]);
+  }, [confirmState]);
 
   return (
     <ConfirmContext.Provider value={confirm}>
@@ -121,10 +120,4 @@ export function ConfirmProvider({ children }) {
   );
 }
 
-export function useConfirm() {
-  const context = useContext(ConfirmContext);
-  if (!context) {
-    throw new Error("useConfirm must be used within a ConfirmProvider");
-  }
-  return context;
-}
+
