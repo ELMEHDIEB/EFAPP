@@ -7,6 +7,10 @@ import { useConfirm } from "../components/ui/ConfirmContext.jsx";
 import { usePWAInstall } from "../hooks/usePWAInstall.js";
 import { sha256 } from "../utils/crypto.js";
 import HeroHeader from "../components/ui/HeroHeader.jsx";
+import { PortfolioStatsCard } from "../components/settings/PortfolioStatsCard.jsx";
+import { SecurityCard } from "../components/settings/SecurityCard.jsx";
+import { SystemHealthCard } from "../components/settings/SystemHealthCard.jsx";
+import { PwaInstallCard } from "../components/settings/PwaInstallCard.jsx";
 
 const TABLES = [
   "accounts",
@@ -127,217 +131,45 @@ export default function Settings() {
         {/* Left Column: Stats & Security */}
         <div className="lg:col-span-2 space-y-6">
           
-          {/* Account Portfolio */}
-          <div className="pro-card p-6">
-            <h2 className="pro-heading mb-6">Account Portfolio</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-              <div>
-                <p className="text-[10px] uppercase tracking-widest text-textdim font-bold mb-1">Total Accounts</p>
-                <p className="text-2xl font-black text-white">{totalAccounts}</p>
-              </div>
-              <div>
-                <p className="text-[10px] uppercase tracking-widest text-textdim font-bold mb-1">Average Coins</p>
-                <p className="text-2xl font-black text-white">{averageCoins}</p>
-              </div>
-              <div>
-                <p className="text-[10px] uppercase tracking-widest text-textdim font-bold mb-1">Best Account</p>
-                <p className="text-2xl font-black text-accent truncate">{bestAccount ? bestAccount.currentCoins : 0}</p>
-                <p className="text-[10px] font-medium text-textdim truncate">{bestAccount ? bestAccount.name : "-"}</p>
-              </div>
-              <div>
-                <p className="text-[10px] uppercase tracking-widest text-textdim font-bold mb-1">Accounts ≥ 900</p>
-                <p className="text-2xl font-black text-accent">{accountsOver900}</p>
-              </div>
-              <div>
-                <p className="text-[10px] uppercase tracking-widest text-textdim font-bold mb-1">Accounts &lt; 300</p>
-                <p className="text-2xl font-black text-danger">{accountsUnder300}</p>
-              </div>
-            </div>
-          </div>
+          <PortfolioStatsCard 
+            totalAccounts={totalAccounts}
+            averageCoins={averageCoins}
+            bestAccount={bestAccount}
+            accountsOver900={accountsOver900}
+            accountsUnder300={accountsUnder300}
+            achievementsUnlocked={achievementsUnlocked}
+            achievementsRemaining={achievementsRemaining}
+            achievementsCompletion={achievementsCompletion}
+          />
 
-          {/* Achievements */}
-          <div className="pro-card p-6">
-            <h2 className="pro-heading mb-6">Achievements</h2>
-            <div className="flex flex-col sm:flex-row items-center gap-8">
-              <div className="flex gap-8">
-                <div>
-                  <p className="text-[10px] uppercase tracking-widest text-textdim font-bold mb-1">Unlocked</p>
-                  <p className="text-3xl font-black text-accent">{achievementsUnlocked}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase tracking-widest text-textdim font-bold mb-1">Remaining</p>
-                  <p className="text-3xl font-black text-white">{achievementsRemaining}</p>
-                </div>
-              </div>
-              <div className="flex-1 w-full">
-                <div className="flex justify-between items-end mb-2">
-                  <p className="text-[10px] uppercase tracking-widest text-textdim font-bold">Completion</p>
-                  <p className="text-lg font-black text-white">{achievementsCompletion}%</p>
-                </div>
-                <div className="w-full h-2 bg-ink rounded-full overflow-hidden">
-                  <div className="h-full bg-accent rounded-full transition-all" style={{ width: `${achievementsCompletion}%` }}></div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <SecurityCard 
+            hasPin={hasPin}
+            hasRecovery={hasRecovery}
+            hasBackup={hasBackup}
+            securityScore={securityScore}
+            pinInput={pinInput}
+            setPinInput={setPinInput}
+            recoveryPhrase={recoveryPhrase}
+            setRecoveryPhrase={setRecoveryPhrase}
+            savePin={savePin}
+            removePin={removePin}
+          />
 
-          {/* Sécurité & Confidentialité */}
-          <div id="pin-setup" className="pro-card p-6">
-            <h2 className="pro-heading mb-6">Sécurité & Confidentialité</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                {hasPin ? (
-                  <div className="flex flex-col gap-4 p-4 bg-ink rounded-xl border border-white/5 h-full justify-center">
-                    <div>
-                      <p className="text-sm text-white font-bold flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-accent"></span> Verrouillage actif
-                      </p>
-                      <p className="text-xs text-textdim mt-1">L'application exige le code PIN au démarrage.</p>
-                    </div>
-                    <button onClick={removePin} className="btn-secondary w-full">
-                      Désactiver la protection
-                    </button>
-                  </div>
-                ) : (
-                  <form onSubmit={savePin} className="flex flex-col gap-4 p-5 bg-ink rounded-xl border border-white/5">
-                    <div>
-                      <p className="text-sm font-bold text-white mb-1">Activer le verrouillage par PIN</p>
-                      <p className="text-xs text-textdim leading-relaxed">Protégez vos données avec un code PIN et une phrase de récupération en cas d'oubli.</p>
-                    </div>
-                    <div>
-                      <input 
-                        type="password" 
-                        value={pinInput} 
-                        onChange={e => setPinInput(e.target.value)} 
-                        placeholder="Code PIN à 4+ chiffres" 
-                        className="input w-full"
-                        maxLength={10}
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-textdim uppercase tracking-wider block mb-1">Recovery Phrase</label>
-                      <input 
-                        type="text" 
-                        value={recoveryPhrase} 
-                        onChange={e => setRecoveryPhrase(e.target.value)} 
-                        placeholder="Ex: river orange planet eagle 42" 
-                        className="input w-full"
-                      />
-                    </div>
-                    <button type="submit" className="btn-primary mt-2">
-                      Activer la protection
-                    </button>
-                  </form>
-                )}
-              </div>
+          <PwaInstallCard 
+            isInstalled={isInstalled}
+            installPrompt={installPrompt}
+            triggerInstall={triggerInstall}
+          />
 
-              <div className="bg-ink rounded-xl border border-white/5 p-5">
-                <p className="text-sm font-bold text-white mb-4">Recovery Readiness</p>
-                <p className={`text-2xl font-black mb-1 ${securityScore === 3 ? 'text-accent' : securityScore === 0 ? 'text-danger' : 'text-warn'}`}>
-                  {securityScore === 3 ? 'Excellent' : securityScore === 0 ? 'Poor' : 'Fair'}
-                </p>
-                <p className="text-xs font-medium text-textdim mb-6">{securityScore}/3 security measures active</p>
-
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="font-bold text-white">PIN Enabled</span>
-                    <span className={hasPin ? "text-accent font-bold" : "text-danger font-bold"}>{hasPin ? "Active" : "Missing"}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="font-bold text-white">Recovery Phrase</span>
-                    <span className={hasRecovery ? "text-accent font-bold" : "text-danger font-bold"}>{hasRecovery ? "Active" : "Missing"}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="font-bold text-white">Backup Available</span>
-                    <span className={hasBackup ? "text-accent font-bold" : "text-danger font-bold"}>{hasBackup ? "Active" : "Missing"}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Application Native (PWA) */}
-          <div className="pro-card p-6 border-blue-500/20 border">
-            <h2 className="pro-heading mb-6 flex items-center gap-2">
-              <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
-              Application Native
-            </h2>
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-5 bg-ink rounded-xl border border-white/5">
-              <div className="flex-1">
-                <p className="text-sm font-bold text-white mb-1">Installer EFAPP</p>
-                <p className="text-xs text-textdim">Installez l'application sur votre appareil pour y accéder hors ligne et comme une vraie application native (sans navigateur).</p>
-              </div>
-              <div>
-                {isInstalled ? (
-                  <div className="px-4 py-2 bg-green-500/20 text-green-400 rounded font-bold text-sm">Déjà installée</div>
-                ) : (
-                  <button onClick={triggerInstall} disabled={!installPrompt} className="btn-primary whitespace-nowrap disabled:opacity-50">
-                    Installer maintenant
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Right Column: Health & Maintenance */}
         <div className="space-y-6">
           
-          {/* System Health */}
-          <div className="pro-card p-6">
-            <h2 className="pro-heading mb-6">System Health</h2>
-            <div className="flex items-end gap-1 mb-6">
-              <span className={`text-4xl font-black tracking-tighter ${systemHealth === 100 ? 'text-accent' : 'text-warn'}`}>{systemHealth}</span>
-              <span className="text-sm font-bold text-textdim mb-1">/100</span>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-textdim font-medium uppercase tracking-wider">Build Status</span>
-                  <span className="text-accent font-bold">Operational</span>
-                </div>
-                <div className="flex justify-between text-[10px] text-textdim">
-                  <div className="w-full h-1 bg-ink rounded-full overflow-hidden mr-4 mt-1"><div className="h-full bg-accent w-full"></div></div>
-                  <span>25/25</span>
-                </div>
-              </div>
-              
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-textdim font-medium uppercase tracking-wider">Database Status</span>
-                  <span className="text-accent font-bold">Operational</span>
-                </div>
-                <div className="flex justify-between text-[10px] text-textdim">
-                  <div className="w-full h-1 bg-ink rounded-full overflow-hidden mr-4 mt-1"><div className="h-full bg-accent w-full"></div></div>
-                  <span>25/25</span>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-textdim font-medium uppercase tracking-wider">Storage Status</span>
-                  <span className="text-accent font-bold">Healthy</span>
-                </div>
-                <div className="flex justify-between text-[10px] text-textdim">
-                  <div className="w-full h-1 bg-ink rounded-full overflow-hidden mr-4 mt-1"><div className="h-full bg-accent w-full"></div></div>
-                  <span>25/25</span>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="text-textdim font-medium uppercase tracking-wider">Recovery Status</span>
-                  <span className={hasRecovery ? "text-accent font-bold" : "text-danger font-bold"}>{hasRecovery ? "Operational" : "Poor"}</span>
-                </div>
-                <div className="flex justify-between text-[10px] text-textdim">
-                  <div className="w-full h-1 bg-ink rounded-full overflow-hidden mr-4 mt-1"><div className={`h-full ${hasRecovery ? 'bg-accent' : 'bg-danger'}`} style={{ width: hasRecovery ? '100%' : '0%' }}></div></div>
-                  <span>{hasRecovery ? '25' : '0'}/25</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          <SystemHealthCard 
+            systemHealth={systemHealth}
+            hasRecovery={hasRecovery}
+          />
 
           {/* Recommendations */}
           <div className="pro-card p-6">

@@ -13,13 +13,14 @@ Ouvre ensuite l'URL affichée dans le terminal (en général `http://localhost:5
 
 ---
 
-## 💾 Persistance des données (Important)
+## 💾 Persistance des données & "Zero Cloud" (Important)
 
 Toutes les données (comptes, soldes, historique) sont stockées dans **IndexedDB** (via Dexie.js), une base de données intégrée au navigateur.
 
-- **100% Local :** Rien n'est envoyé sur internet. Aucun backend, aucun compte utilisateur. Les données ne quittent jamais l'appareil.
-- **Permanence :** Ferme l'onglet, redémarre ton ordinateur, tout est conservé automatiquement.
-- **Sauvegarde :** Utilise la page *Paramètres* pour exporter/importer un backup de tes données si tu changes d'ordinateur.
+- **100% Local :** Rien n'est stocké sur nos serveurs. Vous êtes l'unique propriétaire de vos données.
+- **P2P Sync (PeerJS) :** Possibilité de synchroniser vos données entre vos différents appareils (PC / Mobile) en direct de pair-à-pair, sans serveur intermédiaire. Sécurisé, crypté et anonyme !
+- **PWA (Progressive Web App) :** L'application est installable directement sur votre appareil, fonctionnant 100% hors-ligne comme une application native.
+- **Sauvegarde manuelle :** Page *Paramètres* pour exporter/importer un fichier JSON si nécessaire.
 
 ---
 
@@ -61,19 +62,23 @@ L'application est construite autour du concept de **Mental Coach** pour aider le
 - Goal Distribution & Milestone Achievement
 - Professional PDF Official Bilan Export with charts and stamps
 
----
+### Phase 6: Sync & Native Experience (COMPLETED)
+
+* **PWA Integration:** Manifest & Service Workers via `vite-plugin-pwa` for offline, native-like installation.
+* **P2P Cloud Sync:** Anonymous, server-less device synchronization using PeerJS.
+* **Pro Architecture Refactoring:** Modularized UI (Separation of SpinTracker, Analytics, Settings, DataManagement).
 
 ## 📝 Changelog Récent
 
-### Version 2.0 (Complete)
+### Version 6.0 (Pro Max - Actuelle)
 
-* **Analytics & Export PDF :** Intégration de `html2canvas` et `jspdf` pour générer un Bilan Comptable avec graphiques capturés et tampons officiels.
-- **UI/UX :** Nouveau logo officiel et nettoyage de l'interface du Sidebar.
-- **Spin Tracker :** Ajout de la date personnalisée pour l'enregistrement de spins passés (sans déclencher le mode d'urgence).
-- **Graphiques d'évolution :** Résolution temporelle à l'heure près pour une précision maximale sur l'axe X (format HH:mm).
+* **PWA (Progressive Web App) :** Bouton "Installer EFAPP" ajouté dans les paramètres. Fonctionne 100% hors-ligne.
+- **Cloud Sync P2P :** Synchronisation de vos données entre appareils de pair-à-pair (PeerJS).
+- **Architecture Modulaire :** Le "code spaghetti" a été nettoyé. Les gros fichiers (Analytics, Settings, SpinTracker) ont été découpés en composants professionnels et optimisés.
 
-### Version 1.x (Historique)
+### Version 5.3 & Antérieures (Historique)
 
-* Implémentation du Local PIN Lock, Weekly Spend Limits, et Mode Urgence.
-- Création du flux Spin Tracker (4 étapes).
-- Mise en place initiale du Dashboard analytique.
+* **Analytics & Export PDF :** Intégration de `html2canvas` et `jspdf` pour générer un Bilan Comptable officiel.
+- **Mental Coach & UI/UX :** Nouveau logo, Spin Wizard à 4 étapes, Mode Urgence, et Détection d'impulsivité.
+- **Data Management :** Page dédiée pour les réinitialisations (Factory Reset, Logs), et export manuel JSON.
+- **Sécurité :** Local PIN Lock.

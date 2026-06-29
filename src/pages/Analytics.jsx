@@ -3,9 +3,11 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db.js";
 import { useAnalyticsData } from "../hooks/useAnalyticsData.js";
 import { 
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, BarChart, Bar, Legend
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer
 } from 'recharts';
+import { EvolutionChart } from '../components/analytics/EvolutionChart.jsx';
+import { DistributionPie } from '../components/analytics/DistributionPie.jsx';
+import { GrowthBarChart } from '../components/analytics/GrowthBarChart.jsx';
 import { getNextGoal, getGoalDistribution } from "../utils/goalEngine.js";
 import { getHealthScore } from "../utils/healthScore.js";
 import ExportCenter from "../components/ExportCenter.jsx";
@@ -64,102 +66,13 @@ export default function Analytics() {
 
       {/* Row 1: Charts */}
       <div id="analytics-charts-export" className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Multi-Line Evolution */}
-        <div className="lg:col-span-2 pro-card p-6 h-[400px] flex flex-col">
-          <h2 className="pro-heading mb-6">Évolution Historique des Comptes</h2>
-          <div className="flex-1 w-full h-full min-h-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={multiLineData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  {accounts.map((acc, i) => (
-                    <linearGradient key={`grad-${acc.id}`} id={`color-${i}`} x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={COLORS[i % COLORS.length]} stopOpacity={0.1}/>
-                      <stop offset="95%" stopColor={COLORS[i % COLORS.length]} stopOpacity={0}/>
-                    </linearGradient>
-                  ))}
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff" strokeOpacity={0.05} vertical={false} />
-                <XAxis dataKey="label" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                <RechartsTooltip contentStyle={{ backgroundColor: '#0a0a0a', borderColor: '#ffffff20', borderRadius: '8px' }} />
-                {accounts.map((acc, i) => (
-                  <Area 
-                    key={acc.id}
-                    type="monotone" 
-                    dataKey={acc.name} 
-                    stroke={COLORS[i % COLORS.length]} 
-                    fillOpacity={1} 
-                    fill={`url(#color-${i})`} 
-                  />
-                ))}
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Pie Chart (Distribution) */}
-        <div className="pro-card p-6 h-[400px] flex flex-col">
-          <h2 className="pro-heading mb-6">DISTRIBUTION DE COMPTES ET LEUR COIN</h2>
-          <div className="flex-1 w-full h-full min-h-0 relative">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="45%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                  stroke="none"
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <RechartsTooltip 
-                  formatter={(value, name, props) => [`${value} (${props.payload.percent}%)`, name]}
-                  contentStyle={{ backgroundColor: '#0a0a0a', borderColor: '#ffffff20', borderRadius: '8px' }} 
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            {/* Custom Legend */}
-            <div className="absolute bottom-0 w-full flex flex-wrap justify-center gap-3">
-              {pieData.map((entry, i) => (
-                <div key={i} className="flex items-center gap-1.5 text-[10px] text-textdim">
-                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }}></div>
-                  {entry.name}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        <EvolutionChart accounts={accounts} multiLineData={multiLineData} COLORS={COLORS} />
+        <DistributionPie pieData={pieData} />
       </div>
 
       {/* Row 2: Growth vs Decline & Export Table */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Growth vs Decline Bar Chart */}
-        <div className="pro-card p-6 h-[400px] flex flex-col">
-          <h2 className="pro-heading mb-6">Gains vs Dépenses (Net)</h2>
-          <div className="flex-1 w-full h-full min-h-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={growthData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#ffffff" strokeOpacity={0.05} vertical={false} />
-                <XAxis dataKey="date" hide />
-                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                <RechartsTooltip 
-                  cursor={{fill: '#ffffff05'}}
-                  contentStyle={{ backgroundColor: '#0a0a0a', borderColor: '#ffffff20', borderRadius: '8px' }}
-                />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
-                <Bar dataKey="Growth" name="Gains (+)" stackId="a" fill="#10b981" radius={[2,2,0,0]} />
-                <Bar dataKey="Decline" name="Dépenses (-)" stackId="a" fill="#ef4444" radius={[0,0,2,2]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+        <GrowthBarChart growthData={growthData} />
 
         {/* Bilan Report Table */}
         <div className="lg:col-span-2 pro-card p-6 flex flex-col">
