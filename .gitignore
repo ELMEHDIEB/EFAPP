@@ -1,0 +1,14 @@
+node_modules
+dist
+.DS_Store
+
+# Executables & Build outputs
+*.exe
+*.dll
+*.asar
+*.pak
+*.dat
+*.map
+release/
+out/
+build/
