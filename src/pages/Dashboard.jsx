@@ -115,15 +115,15 @@ export default function Dashboard() {
               <AreaChart data={portfolioHistory}>
                 <defs>
                   <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <Tooltip 
                   contentStyle={{ backgroundColor: '#0a0a0a', borderColor: '#ffffff20', borderRadius: '8px' }}
-                  itemStyle={{ color: '#3b82f6', fontWeight: 'bold' }}
+                  itemStyle={{ color: '#10b981', fontWeight: 'bold' }}
                 />
-                <Area type="monotone" dataKey="total" name="Total Coins" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorTotal)" />
+                <Area type="monotone" dataKey="total" name="Total Coins" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorTotal)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
