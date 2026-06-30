@@ -81,10 +81,10 @@ export default function LivePacks() {
 
           const cardCategory = (() => {
             const n = title.toLowerCase();
-            if (n.includes('epic') || n.includes('national')) return 'Epic';
+            if (n.includes('potw') || n.includes('players of the week') || n.includes('potd')) return 'POTW';
+            if (n.includes('epic') || /\bnational\b/.test(n)) return 'Epic';
             if (n.includes('show time') || n.includes('showtime')) return 'Show Time';
             if (n.includes('big time')) return 'Big Time';
-            if (n.includes('potw') || n.includes('players of the week') || n.includes('potd')) return 'POTW';
             if (n.includes('highlight') || n.includes('club selection') || n.includes('fans choice')) return 'Highlight';
             return 'Standard';
           })();
