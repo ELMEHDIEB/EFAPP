@@ -103,6 +103,19 @@ export default function LivePacks() {
               playerId = href.split('/players/')[1].split('/')[0].split('?')[0];
             }
 
+            let pCat = cardCategory;
+            if (playerLinks.length >= 50) {
+              if (i < 3) {
+                pCat = (cardCategory === 'Show Time' || cardCategory === 'Big Time' || cardCategory === 'Epic') ? cardCategory : 'Epic';
+              } else if (i < 11) {
+                pCat = 'Highlight';
+              } else {
+                pCat = 'Standard';
+              }
+            } else if (playerLinks.length === 11 && pCat === 'Standard') {
+              pCat = 'Highlight';
+            }
+
             if (imgEl) {
               const src = imgEl.getAttribute('src');
               if (src) {
@@ -112,7 +125,7 @@ export default function LivePacks() {
                   imageUrl: src,
                   rating: rating,
                   position: position,
-                  cardCategory: cardCategory
+                  cardCategory: pCat
                 });
               }
             }
