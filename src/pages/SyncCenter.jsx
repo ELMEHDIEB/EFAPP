@@ -127,7 +127,7 @@ export default function SyncCenter() {
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
             </div>
             <h3 className="text-xl font-bold text-white">Envoyer mes données</h3>
-            <p className="text-gray-400 text-center text-sm">Générez un QR Code depuis cet appareil pour transférer la sauvegarde vers votre téléphone.</p>
+            <p className="text-textdim text-center text-sm">Générez un QR Code depuis cet appareil pour transférer la sauvegarde vers votre téléphone.</p>
           </button>
 
           <button onClick={startClient} className="pro-card bg-surface p-8 flex flex-col items-center gap-4 hover:border-green-500/50 transition-colors">
@@ -135,7 +135,7 @@ export default function SyncCenter() {
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
             </div>
             <h3 className="text-xl font-bold text-white">Recevoir des données</h3>
-            <p className="text-gray-400 text-center text-sm">Ouvrez la caméra de cet appareil pour scanner un QR Code et importer les données.</p>
+            <p className="text-textdim text-center text-sm">Ouvrez la caméra de cet appareil pour scanner un QR Code et importer les données.</p>
           </button>
         </div>
       )}
@@ -143,7 +143,7 @@ export default function SyncCenter() {
       {mode === 'send' && (
         <div className="pro-card bg-surface p-8 flex flex-col items-center justify-center text-center space-y-6">
           <h3 className="text-2xl font-bold text-white">Scanner ce QR Code</h3>
-          <p className="text-gray-400 max-w-md">Ouvrez l'application sur votre téléphone, allez dans "Sync Center" et choisissez "Recevoir des données".</p>
+          <p className="text-textdim max-w-md">Ouvrez l'application sur votre téléphone, allez dans "Sync Center" et choisissez "Recevoir des données".</p>
           
           <div className="bg-white p-4 rounded-xl">
             {peerId ? (
@@ -155,7 +155,7 @@ export default function SyncCenter() {
             )}
           </div>
 
-          <div className="text-sm font-mono text-gray-500">ID: {peerId || 'Génération...'}</div>
+          <div className="text-sm font-mono text-textmuted">ID: {peerId || 'Génération...'}</div>
 
           {connectionStatus === 'syncing' && <p className="text-blue-400 font-bold animate-pulse">Envoi en cours...</p>}
           {connectionStatus === 'done' && <p className="text-green-400 font-bold">Synchronisation terminée !</p>}
@@ -167,7 +167,7 @@ export default function SyncCenter() {
       {mode === 'receive' && (
         <div className="pro-card bg-surface p-8 flex flex-col items-center justify-center text-center space-y-6">
           <h3 className="text-2xl font-bold text-white">En attente du scan...</h3>
-          <p className="text-gray-400 max-w-md">Visez le QR code affiché sur l'autre appareil.</p>
+          <p className="text-textdim max-w-md">Visez le QR code affiché sur l'autre appareil.</p>
           
           {connectionStatus === 'disconnected' && (
             <div id="qr-reader" className="w-full max-w-sm rounded-xl overflow-hidden border-2 border-white/10"></div>

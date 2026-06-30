@@ -5,7 +5,7 @@ const EMOTIONS = [
   { id: 'Zen', emoji: '🧘‍♂️', color: 'bg-green-500/20 text-green-400 border-green-500/50' },
   { id: 'Hype', emoji: '🔥', color: 'bg-orange-500/20 text-orange-400 border-orange-500/50' },
   { id: 'Frustré', emoji: '😤', color: 'bg-red-500/20 text-red-400 border-red-500/50' },
-  { id: 'Neutre', emoji: '😐', color: 'bg-gray-500/20 text-gray-400 border-gray-500/50' },
+  { id: 'Neutre', emoji: '😐', color: 'bg-textmuted/20 text-textdim border-textmuted/50' },
 ];
 
 export default function DailyCheckinModal({ onClose }) {
@@ -37,7 +37,7 @@ export default function DailyCheckinModal({ onClose }) {
 
         <div className="text-center space-y-2 mb-8 relative z-10">
           <h2 className="text-2xl font-black tracking-tight text-white">Daily Check-in</h2>
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-textdim">
             Prenez 2 secondes pour évaluer votre état d'esprit avant d'ouvrir eFootball aujourd'hui.
           </p>
         </div>
@@ -50,7 +50,7 @@ export default function DailyCheckinModal({ onClose }) {
                 key={emo.id}
                 onClick={() => setSelected(emo.id)}
                 className={`p-4 rounded-xl border flex flex-col items-center gap-2 transition-all duration-300
-                  ${isSelected ? emo.color + ' scale-105 shadow-lg' : 'bg-surface border-white/5 text-gray-400 hover:bg-white/5'}
+                  ${isSelected ? emo.color + ' scale-105 shadow-lg' : 'bg-surface border-white/5 text-textdim hover:bg-white/5'}
                 `}
               >
                 <span className="text-3xl">{emo.emoji}</span>

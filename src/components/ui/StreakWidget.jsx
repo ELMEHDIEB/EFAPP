@@ -3,7 +3,7 @@ import { TextMorph } from '../forgeui/text-morph.jsx';
 export default function StreakWidget({ streakDays }) {
   // Gamification levels based on streak
   let flameColor = "from-gray-600 to-gray-800";
-  let textColor = "text-gray-400";
+  let textColor = "text-textdim";
   let titleWords = ["Débutant", "Focus", "Discipline"];
   
   if (streakDays > 0) {
