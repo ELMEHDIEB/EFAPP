@@ -81,13 +81,15 @@ export default function LivePacks() {
 
           const cardCategory = (() => {
             const n = title.toLowerCase();
-            if (n.includes('epic')) return 'Epic';
+            if (n.includes('epic') || n.includes('national')) return 'Epic';
             if (n.includes('show time') || n.includes('showtime')) return 'Show Time';
             if (n.includes('big time')) return 'Big Time';
             if (n.includes('potw') || n.includes('players of the week') || n.includes('potd')) return 'POTW';
-            if (n.includes('highlight') || n.includes('club selection') || n.includes('fans choice') || n.includes('national')) return 'Highlight';
+            if (n.includes('highlight') || n.includes('club selection') || n.includes('fans choice')) return 'Highlight';
             return 'Standard';
           })();
+
+          const isBigBox = playerLinks.length >= 50 || cardCategory === 'Epic' || cardCategory === 'Show Time' || cardCategory === 'Big Time';
 
           const allPlayers = [];
           playerLinks.forEach((link, i) => {
@@ -104,7 +106,7 @@ export default function LivePacks() {
             }
 
             let pCat = cardCategory;
-            if (playerLinks.length >= 50) {
+            if (isBigBox) {
               if (i < 3) {
                 pCat = (cardCategory === 'Show Time' || cardCategory === 'Big Time' || cardCategory === 'Epic') ? cardCategory : 'Epic';
               } else if (i < 11) {
@@ -139,7 +141,7 @@ export default function LivePacks() {
           extractedPacks.push({
             id: `pack_${index}`,
             name: title,
-            playersCount: playerLinks.length,
+            playersCount: isBigBox ? 150 : playerLinks.length,
             coverUrl,
             topPlayers,
             allPlayers
