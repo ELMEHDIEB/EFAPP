@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db.js";
 import { applyCoinChange } from "../accountActions.js";
+import { useAccountScores } from "../hooks/useAccountScores.js";
 import { useToast } from "../components/ui/ToastContext.jsx";
 import { useConfirm } from "../components/ui/ConfirmContext.jsx";
 import AccountHistory from "../components/AccountHistory.jsx";
@@ -23,24 +24,8 @@ export default function BilanTracker() {
   const [snapshotData, setSnapshotData] = useState({});
   const [isSaving, setIsSaving] = useState(false);
   const [quickAddAccount, setQuickAddAccount] = useState("");
-  const [disciplineData, setDisciplineData] = useState({});
   const [searchQuery, setSearchQuery] = useState("");
-
-  // Load discipline scores
-  useMemo(() => {
-    if (!accounts || accounts.length === 0) return;
-    let cancelled = false;
-    async function loadScores() {
-      const data = {};
-      for (const acc of accounts) {
-        const result = await getDisciplineScore(acc.id);
-        data[acc.id] = result;
-      }
-      if (!cancelled) setDisciplineData(data);
-    }
-    loadScores();
-    return () => { cancelled = true; };
-  }, [accounts]);
+  const disciplineData = useAccountScores(accounts, getDisciplineScore);
 
   // Initialize snapshot data when accounts load
   useMemo(() => {

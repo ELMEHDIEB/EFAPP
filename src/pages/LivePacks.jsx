@@ -188,7 +188,11 @@ export default function LivePacks() {
                 {pack.topPlayers && pack.topPlayers.length > 0 ? (
                   <div className="flex justify-center items-end gap-1 w-full h-full pb-2">
                     {pack.topPlayers.map((p, idx) => (
-                      <div key={idx} className={`relative group/player ${idx === 2 ? 'w-24 z-10' : idx === 1 || idx === 3 ? 'w-20 opacity-90 z-0' : 'w-16 opacity-70 -z-10'} transition-transform hover:scale-110 hover:z-20 hover:opacity-100 cursor-pointer`}>
+                      <div 
+                        key={idx} 
+                        onClick={() => navigate('/live-packs/analyze', { state: { pack, allPacks: packs, autoSelectPlayer: p } })}
+                        className={`relative group/player ${idx === 2 ? 'w-24 z-10' : idx === 1 || idx === 3 ? 'w-20 opacity-90 z-0' : 'w-16 opacity-70 -z-10'} transition-transform hover:scale-110 hover:z-20 hover:opacity-100 cursor-pointer`}
+                      >
                         <img src={p.imageUrl} alt={p.name} title={p.name} className="w-full object-contain drop-shadow-2xl" />
                         {p.rating && (
                           <div className="absolute -bottom-1 -right-1 bg-black/80 backdrop-blur border border-accent/50 text-accent text-[10px] font-black px-1.5 py-0.5 rounded shadow-lg flex flex-col items-center leading-none">

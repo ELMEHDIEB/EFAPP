@@ -5,7 +5,9 @@ import { db } from "../db.js";
 import HeroHeader from "../components/ui/HeroHeader.jsx";
 
 export default function PackAnalysis() {
-  const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [selectedPlayer, setSelectedPlayer] = useState(location.state?.autoSelectPlayer || null);
   const [isFetchingPlayer, setIsFetchingPlayer] = useState(false);
   const [playerMaxData, setPlayerMaxData] = useState(null);
   const [playerFetchError, setPlayerFetchError] = useState(null);
@@ -17,8 +19,7 @@ export default function PackAnalysis() {
     setPlayerMaxData(null);
     setPlayerFetchError(null);
   };
-  const location = useLocation();
-  const navigate = useNavigate();
+
   const pack = location.state?.pack;
 
   const allPacks = location.state?.allPacks || [];

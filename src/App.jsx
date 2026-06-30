@@ -51,23 +51,25 @@ export default function App() {
           </Suspense>
           <main className="flex-1 overflow-y-auto p-4 md:p-8">
             <Suspense fallback={<DashboardSkeleton />}>
-              <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/bilan-tracker" element={<BilanTracker />} />
-                <Route path="/accounts" element={<Accounts />} />
-                <Route path="/spin-tracker" element={<SpinTracker />} />
-                <Route path="/journal" element={<EmotionalJournal />} />
-                <Route path="/analytics" element={<ErrorBoundary><Analytics /></ErrorBoundary>} />
-                <Route path="/achievements" element={<Achievements />} />
-                <Route path="/leaderboard" element={<Leaderboard />} />
-                <Route path="/epic-calculator" element={<EpicCalculator />} />
-                <Route path="/live-packs" element={<LivePacks />} />
-                <Route path="/live-packs/analyze" element={<PackAnalysis />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/settings/data-management" element={<DataManagement />} />
-                <Route path="/sync" element={<SyncCenter />} />
-                <Route path="/post-loss-recovery" element={<PostLossRecovery />} />
-              </Routes>
+              <ErrorBoundary>
+                <Routes>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/bilan-tracker" element={<BilanTracker />} />
+                  <Route path="/accounts" element={<Accounts />} />
+                  <Route path="/spin-tracker" element={<SpinTracker />} />
+                  <Route path="/journal" element={<EmotionalJournal />} />
+                  <Route path="/analytics" element={<Analytics />} />
+                  <Route path="/achievements" element={<Achievements />} />
+                  <Route path="/leaderboard" element={<Leaderboard />} />
+                  <Route path="/epic-calculator" element={<EpicCalculator />} />
+                  <Route path="/live-packs" element={<LivePacks />} />
+                  <Route path="/live-packs/analyze" element={<PackAnalysis />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/settings/data-management" element={<DataManagement />} />
+                  <Route path="/sync" element={<SyncCenter />} />
+                  <Route path="/post-loss-recovery" element={<PostLossRecovery />} />
+                </Routes>
+              </ErrorBoundary>
             </Suspense>
           </main>
         </div>

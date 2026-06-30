@@ -1,6 +1,12 @@
 import { useState, useEffect } from "react";
 import { db } from "../db.js";
 import { sha256 } from "../utils/crypto.js";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "../components/ui/input-otp.jsx";
+import { VaultLockGraphic } from "../components/forgeui/vault-lock.jsx";
 
 export default function PinLock({ expectedPin, onSuccess }) {
   const [pin, setPin] = useState("");
@@ -10,6 +16,8 @@ export default function PinLock({ expectedPin, onSuccess }) {
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [isLocked, setIsLocked] = useState(false);
   const [lockTimeLeft, setLockTimeLeft] = useState(0);
+
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     let timer;
@@ -28,12 +36,19 @@ export default function PinLock({ expectedPin, onSuccess }) {
     return () => clearInterval(timer);
   }, [isLocked, lockTimeLeft]);
 
-  const handlePinSubmit = (e) => {
+  const handlePinSubmit = async (e) => {
     e.preventDefault();
     if (isLocked) return;
 
-    if (pin === expectedPin) {
-      onSuccess();
+    // sha256 hash is 64 characters long. If it's not 64, it's a legacy plaintext PIN.
+    const isLegacyPlaintext = expectedPin.length !== 64;
+    const isMatch = isLegacyPlaintext ? pin === expectedPin : await sha256(pin) === expectedPin;
+
+    if (isMatch) {
+      setIsOpen(true);
+      setTimeout(() => {
+        onSuccess();
+      }, 1000); // 1s delay for open animation
     } else {
       const newAttempts = failedAttempts + 1;
       setFailedAttempts(newAttempts);
@@ -99,32 +114,41 @@ export default function PinLock({ expectedPin, onSuccess }) {
 
   return (
     <div className="flex h-screen items-center justify-center bg-ink p-4">
-      <div className="card bg-panel p-8 w-full max-w-sm text-center shadow-2xl border border-border">
-        <div className="w-16 h-16 bg-panel2 rounded-full flex items-center justify-center mx-auto mb-4 border border-border">
-          <svg className="w-8 h-8 text-textdim" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-          </svg>
+      <div className="card bg-panel p-8 w-full max-w-sm text-center shadow-2xl border border-border relative overflow-hidden">
+        <div className="absolute top-4 left-0 w-full flex justify-center">
+          <VaultLockGraphic isOpen={isOpen} />
         </div>
-        <h1 className="text-xl font-bold text-white mb-2">Application verrouillée</h1>
-        <p className="text-sm text-textdim mb-6">Saisissez votre code PIN pour accéder à EFAPP.</p>
-        <form onSubmit={handlePinSubmit} className="flex flex-col gap-4">
-          <input
-            type="password"
-            value={pin}
-            onChange={(e) => setPin(e.target.value)}
-            className="input text-center tracking-[1em] text-lg font-mono py-3 disabled:opacity-50"
-            autoFocus
-            maxLength={10}
-            disabled={isLocked}
-          />
-          {error && <p className="text-sm text-danger font-medium">{error}</p>}
-          <button type="submit" disabled={isLocked} className="btn-primary py-3 w-full disabled:opacity-50 disabled:cursor-not-allowed">
-            {isLocked ? `Verrouillé (${lockTimeLeft}s)` : "Déverrouiller"}
-          </button>
-          <button type="button" onClick={() => { setMode("recovery"); setError(""); }} className="text-xs text-textdim underline mt-2">
-            Code PIN oublié ?
-          </button>
+        
+        <div className="mt-44 relative z-10">
+          <h1 className="text-xl font-bold text-white mb-2">Vault Access</h1>
+          <p className="text-sm text-textdim mb-8">Saisissez votre code PIN pour accéder à EFAPP.</p>
+        <form onSubmit={handlePinSubmit} className="flex flex-col gap-6 items-center w-full">
+          <div className="w-full flex justify-center">
+            <InputOTP
+              maxLength={expectedPin?.length || 4}
+              value={pin}
+              onChange={(val) => setPin(val)}
+              disabled={isLocked}
+              autoFocus
+            >
+              <InputOTPGroup>
+                {Array.from({ length: expectedPin?.length || 4 }).map((_, i) => (
+                  <InputOTPSlot key={i} index={i} className="w-12 h-14 text-2xl font-black bg-ink/50 border-white/10 text-white" />
+                ))}
+              </InputOTPGroup>
+            </InputOTP>
+          </div>
+          <div className="w-full space-y-4 mt-2">
+            {error && <p className="text-sm text-danger font-medium text-center">{error}</p>}
+            <button type="submit" disabled={isLocked} className="btn-primary py-3 w-full disabled:opacity-50 disabled:cursor-not-allowed">
+              {isLocked ? `Verrouillé (${lockTimeLeft}s)` : "Déverrouiller"}
+            </button>
+            <button type="button" onClick={() => { setMode("recovery"); setError(""); }} className="text-xs text-textdim underline mt-2 w-full text-center">
+              Code PIN oublié ?
+            </button>
+          </div>
         </form>
+        </div>
       </div>
     </div>
   );

@@ -93,9 +93,10 @@ export default function Settings() {
       return toast("La phrase de récupération doit faire au moins 8 caractères.", "error");
     }
     
+    const pinHash = await sha256(pinInput.trim());
     const phraseHash = await sha256(recoveryPhrase.trim().toLowerCase());
 
-    await db.settings.put({ key: "pinLock", value: pinInput.trim() });
+    await db.settings.put({ key: "pinLock", value: pinHash });
     await db.settings.put({ key: "recoveryHash", value: phraseHash });
     
     setPinInput("");

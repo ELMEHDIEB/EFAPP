@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "../db.js";
 import { useAnalyticsData } from "../hooks/useAnalyticsData.js";
+import { useAccountScores } from "../hooks/useAccountScores.js";
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer
 } from 'recharts';
@@ -20,22 +21,7 @@ import EmptyState from "../components/ui/EmptyState.jsx";
 export default function Analytics() {
   const accounts = useLiveQuery(() => db.accounts.toArray(), []);
   const coinLogs = useLiveQuery(() => db.coinLogs.toArray(), []);
-  const [healthData, setHealthData] = useState({});
-
-  useEffect(() => {
-    if (!accounts || accounts.length === 0) return;
-    let cancelled = false;
-    async function loadScores() {
-      const data = {};
-      for (const acc of accounts) {
-        const result = await getHealthScore(acc.id);
-        data[acc.id] = result;
-      }
-      if (!cancelled) setHealthData(data);
-    }
-    loadScores();
-    return () => { cancelled = true; };
-  }, [accounts]);
+  const healthData = useAccountScores(accounts, getHealthScore);
 
   const { multiLineData, pieData, growthData, reportTable, goalDistData, COLORS } = useAnalyticsData(accounts, coinLogs);
 
