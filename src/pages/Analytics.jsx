@@ -20,7 +20,11 @@ import EmptyState from "../components/ui/EmptyState.jsx";
 
 export default function Analytics() {
   const accounts = useLiveQuery(() => db.accounts.toArray(), []);
-  const coinLogs = useLiveQuery(() => db.coinLogs.toArray(), []);
+  const [coinLogs, setCoinLogs] = useState(null);
+
+  useEffect(() => {
+    db.coinLogs.toArray().then(setCoinLogs);
+  }, []);
   const healthData = useAccountScores(accounts, getHealthScore);
 
   const { multiLineData, pieData, growthData, reportTable, goalDistData, COLORS } = useAnalyticsData(accounts, coinLogs);

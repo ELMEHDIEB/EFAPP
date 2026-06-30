@@ -28,6 +28,8 @@ const EpicCalculator = lazy(() => import("./pages/EpicCalculator.jsx"));
 const LivePacks = lazy(() => import("./pages/LivePacks.jsx"));
 const PackAnalysis = lazy(() => import("./pages/PackAnalysis.jsx"));
 const SyncCenter = lazy(() => import("./pages/SyncCenter.jsx"));
+const PlayerDatabase = lazy(() => import("./pages/PlayerDatabase.jsx"));
+const GachaSimulator = lazy(() => import("./pages/GachaSimulator.jsx"));
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -57,11 +59,13 @@ export default function App() {
                   <Route path="/bilan-tracker" element={<BilanTracker />} />
                   <Route path="/accounts" element={<Accounts />} />
                   <Route path="/spin-tracker" element={<SpinTracker />} />
+                  <Route path="/players" element={<PlayerDatabase />} />
                   <Route path="/journal" element={<EmotionalJournal />} />
                   <Route path="/analytics" element={<Analytics />} />
                   <Route path="/achievements" element={<Achievements />} />
                   <Route path="/leaderboard" element={<Leaderboard />} />
                   <Route path="/epic-calculator" element={<EpicCalculator />} />
+                  <Route path="/simulator" element={<GachaSimulator />} />
                   <Route path="/live-packs" element={<LivePacks />} />
                   <Route path="/live-packs/analyze" element={<PackAnalysis />} />
                   <Route path="/settings" element={<Settings />} />

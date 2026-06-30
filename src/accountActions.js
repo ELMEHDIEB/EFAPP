@@ -17,6 +17,9 @@ export async function createAccount({ name, currentCoins = 0, targetCoins = 900,
     weeklyLimit: Number(weeklyLimit) || 0,
     groupTag: groupTag.trim(),
     createdAt: today(),
+    totalGrowth: Number(currentCoins) || 0,
+    totalDecline: 0,
+    lastTransactionDiff: Number(currentCoins) || 0
   });
 
   if (Number(currentCoins) > 0) {
@@ -70,8 +73,20 @@ export async function applyCoinChange(accountId, { action, reason, amount, linke
     newBalance = amt;
   } else throw new Error("Action inconnue.");
 
+  const diff = newBalance - account.currentCoins;
+  let totalGrowth = account.totalGrowth || 0;
+  let totalDecline = account.totalDecline || 0;
+  
+  if (diff > 0) totalGrowth += diff;
+  if (diff < 0) totalDecline += Math.abs(diff);
+
   await db.transaction("rw", db.accounts, db.coinLogs, async () => {
-    await db.accounts.update(accountId, { currentCoins: newBalance });
+    await db.accounts.update(accountId, { 
+      currentCoins: newBalance,
+      totalGrowth,
+      totalDecline,
+      lastTransactionDiff: diff
+    });
     await db.coinLogs.add({
       accountId,
       date: today(),
@@ -120,7 +135,23 @@ export async function undoLastAction(accountId) {
       throw new Error("Impossible d'annuler le solde initial.");
     }
 
-    await db.accounts.update(accountId, { currentCoins: lastLog.previousBalance });
+    // Revert growth/decline
+    const diff = lastLog.newBalance - lastLog.previousBalance;
+    let totalGrowth = account.totalGrowth || 0;
+    let totalDecline = account.totalDecline || 0;
+    
+    if (diff > 0) totalGrowth = Math.max(0, totalGrowth - diff);
+    if (diff < 0) totalDecline = Math.max(0, totalDecline - Math.abs(diff));
+    
+    const previousLog = logs.length > 1 ? logs[logs.length - 2] : null;
+    const lastTransactionDiff = previousLog ? (previousLog.newBalance - previousLog.previousBalance) : 0;
+
+    await db.accounts.update(accountId, { 
+      currentCoins: lastLog.previousBalance,
+      totalGrowth,
+      totalDecline,
+      lastTransactionDiff
+    });
     await db.coinLogs.delete(lastLog.id);
 
     // Revert Spin if applicable

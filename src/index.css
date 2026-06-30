@@ -11,20 +11,17 @@ html, body, #root {
 }
 
 * {
-  scrollbar-width: thin;
-  scrollbar-color: #374151 transparent;
+  scrollbar-width: none; /* Firefox */
+}
+::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
 }
 
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+.custom-scrollbar {
+  scrollbar-width: none; /* Firefox */
 }
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: #374151;
-  border-radius: 4px;
+.custom-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
 }
 
 @layer components {

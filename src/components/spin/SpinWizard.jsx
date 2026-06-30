@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { createSpin, getProtection900Status, classifyImpulseRisk, getSpentThisWeek } from "../../spinActions.js";
 import { getLossSupport } from "../../utils/psychEngine.js";
+import { PlayerSelect } from "./PlayerSelect.jsx";
 
 const EMOTIONS = ["Excité", "Curieux", "Frustré", "Ennuyé", "Stressé", "Confiant"];
 
@@ -19,7 +20,7 @@ export function SpinWizard({ accounts, isPast, onComplete, onCancel }) {
   const [coinsSpent, setCoinsSpent] = useState("100");
   const [spinsCount, setSpinsCount] = useState("1");
   const [satisfactionScore, setSatisfactionScore] = useState("5");
-  const [playersInput, setPlayersInput] = useState("");
+  const [selectedPlayers, setSelectedPlayers] = useState([]);
   const [spentThisWeek, setSpentThisWeek] = useState(0);
 
   // Emergency Mode states
@@ -87,7 +88,6 @@ export function SpinWizard({ accounts, isPast, onComplete, onCancel }) {
 
   const handleConfirm = async () => {
     try {
-      const playersList = playersInput.split(",").map(s => s.trim()).filter(s => s);
       const spent = Number(coinsSpent);
       const satScore = Number(satisfactionScore);
 
@@ -99,7 +99,7 @@ export function SpinWizard({ accounts, isPast, onComplete, onCancel }) {
         wasPlanned,
         emotionBefore,
         emotionAfter: "",
-        playerNames: playersList,
+        players: selectedPlayers, // Pass array of objects {id, name}
         customDate: isPast ? customDate : undefined
       });
 
@@ -282,15 +282,11 @@ export function SpinWizard({ accounts, isPast, onComplete, onCancel }) {
               </label>
             </div>
 
-            <label className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium text-textdim">Joueurs obtenus (optionnel)</span>
-              <input 
-                value={playersInput}
-                onChange={e => setPlayersInput(e.target.value)}
-                placeholder="Séparés par des virgules"
-                className="input py-3"
-              />
-            </label>
+            <PlayerSelect 
+              accountId={accountId}
+              selectedPlayers={selectedPlayers}
+              onChange={setSelectedPlayers}
+            />
 
             <label className="flex flex-col gap-2 pt-2">
               <div className="flex justify-between items-end">

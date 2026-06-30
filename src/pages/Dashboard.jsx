@@ -14,7 +14,8 @@ import { AreaChart, Area, Tooltip, ResponsiveContainer } from "recharts";
 export default function Dashboard() {
   const navigate = useNavigate();
   const accounts = useLiveQuery(() => db.accounts.toArray(), []);
-  const coinLogs = useLiveQuery(() => db.coinLogs.toArray(), []);
+  const recentTransactions = useLiveQuery(() => db.coinLogs.reverse().limit(5).toArray(), []) || [];
+  const [portfolioHistory, setPortfolioHistory] = React.useState([]);
   const { streakDays, needsCheckin, isLoading: isStreakLoading } = useStreakData();
 
   const {
@@ -31,12 +32,38 @@ export default function Dashboard() {
     totalGrowth,
     totalDecline,
     bestGrowth,
-    worstDecline,
-    portfolioHistory,
-    recentTransactions
-  } = usePortfolioStats(accounts, coinLogs);
+    worstDecline
+  } = usePortfolioStats(accounts);
 
-  if (!accounts || !coinLogs) {
+  React.useEffect(() => {
+    if (!accounts || accounts.length === 0) return;
+    const fetchHistory = async () => {
+      const logs = await db.coinLogs.toArray();
+      if (!logs || logs.length === 0) return;
+      
+      const accountBalances = {};
+      const dataPoints = [];
+      const sortedLogs = logs.sort((a, b) => a.id - b.id);
+      
+      sortedLogs.forEach(log => {
+        accountBalances[log.accountId] = log.newBalance;
+        const total = Object.values(accountBalances).reduce((sum, val) => sum + val, 0);
+        
+        let label = log.date;
+        if (log.createdAt) {
+          const d = new Date(log.createdAt);
+          label = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+        }
+        
+        dataPoints.push({ label, total });
+      });
+      
+      setPortfolioHistory(dataPoints.slice(-30));
+    };
+    fetchHistory();
+  }, [totalCoins, accounts?.length]);
+
+  if (!accounts) {
     return (
       <div className="flex justify-center py-20">
         <div className="w-8 h-8 border-2 border-white/10 border-t-white rounded-full animate-spin"></div>

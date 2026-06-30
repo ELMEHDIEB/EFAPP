@@ -134,7 +134,11 @@ function computeAchievements(accounts, coinLogs, disciplineScores) {
 
 export default function Achievements() {
   const accounts = useLiveQuery(() => db.accounts.toArray(), []);
-  const coinLogs = useLiveQuery(() => db.coinLogs.toArray(), []);
+  const [coinLogs, setCoinLogs] = useState(null);
+
+  useEffect(() => {
+    db.coinLogs.toArray().then(setCoinLogs);
+  }, []);
   const [disciplineScores, setDisciplineScores] = useState([]);
 
   useEffect(() => {

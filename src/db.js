@@ -30,4 +30,13 @@ db.version(2).stores({
   auditLogs: "++id, date, actionType, details"
 });
 
+db.version(3).stores({
+  players: "++id, name, cardType, isBooster, overall, position, club, nation, efhubId",
+  spinPlayers: "++id, spinId, playerId"
+});
+
+db.version(4).stores({
+  players: "++id, accountId, name, cardType, isBooster, overall, position, club, nation, efhubId"
+});
+
 export default db;

@@ -17,7 +17,6 @@ import EmptyState from "../components/ui/EmptyState.jsx";
 
 export default function Accounts() {
   const accounts = useLiveQuery(() => db.accounts.orderBy("name").toArray(), []);
-  const coinLogs = useLiveQuery(() => db.coinLogs.toArray(), []);
 
   const [showAdd, setShowAdd] = useState(false);
   const [adjustTarget, setAdjustTarget] = useState(null); // account being adjusted
@@ -91,7 +90,7 @@ export default function Accounts() {
                 </div>
                 {/* Motivation Message */}
                 {(() => {
-                  const motivation = getMotivationMessage(acc, accounts, coinLogs);
+                  const motivation = getMotivationMessage(acc, accounts, null);
                   return (
                     <p className={`text-[11px] mt-2 font-medium ${motivation.type === 'success' ? 'text-accent' : motivation.type === 'warn' ? 'text-warn' : 'text-textdim'}`}>
                       {motivation.message}

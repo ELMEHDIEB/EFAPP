@@ -81,44 +81,44 @@ export default function LivePacks() {
 
           const cardCategory = (() => {
             const n = title.toLowerCase();
-            if (n.includes('epic') || n.includes('national')) return 'Epic';
+            if (n.includes('epic')) return 'Epic';
             if (n.includes('show time') || n.includes('showtime')) return 'Show Time';
             if (n.includes('big time')) return 'Big Time';
             if (n.includes('potw') || n.includes('players of the week') || n.includes('potd')) return 'POTW';
-            if (n.includes('highlight') || n.includes('club selection') || n.includes('fans choice')) return 'Highlight';
+            if (n.includes('highlight') || n.includes('club selection') || n.includes('fans choice') || n.includes('national')) return 'Highlight';
             return 'Standard';
           })();
 
-          const topPlayers = [];
+          const allPlayers = [];
           playerLinks.forEach((link, i) => {
-            if (i < 5) {
-              const imgEl = link.querySelector('img');
-              const nameEl = link.querySelector('p');
-              const spans = link.querySelectorAll('span');
-              const rating = spans.length >= 2 ? spans[0].textContent.trim() : '';
-              const position = spans.length >= 2 ? spans[1].textContent.trim() : '';
+            const imgEl = link.querySelector('img');
+            const nameEl = link.querySelector('p');
+            const spans = link.querySelectorAll('span');
+            const rating = spans.length >= 2 ? spans[0].textContent.trim() : '';
+            const position = spans.length >= 2 ? spans[1].textContent.trim() : '';
 
-              let playerId = null;
-              const href = link.getAttribute('href');
-              if (href && href.includes('/players/')) {
-                playerId = href.split('/players/')[1].split('/')[0].split('?')[0];
-              }
+            let playerId = null;
+            const href = link.getAttribute('href');
+            if (href && href.includes('/players/')) {
+              playerId = href.split('/players/')[1].split('/')[0].split('?')[0];
+            }
 
-              if (imgEl) {
-                const src = imgEl.getAttribute('src');
-                if (src) {
-                  topPlayers.push({
-                    id: playerId,
-                    name: nameEl ? nameEl.textContent.trim() : 'Player',
-                    imageUrl: src,
-                    rating: rating,
-                    position: position,
-                    cardCategory: cardCategory
-                  });
-                }
+            if (imgEl) {
+              const src = imgEl.getAttribute('src');
+              if (src) {
+                allPlayers.push({
+                  id: playerId,
+                  name: nameEl ? nameEl.textContent.trim() : 'Player',
+                  imageUrl: src,
+                  rating: rating,
+                  position: position,
+                  cardCategory: cardCategory
+                });
               }
             }
           });
+          
+          const topPlayers = allPlayers.slice(0, 5);
 
           // Use the first player's image as the main cover if needed, though we will show the faces now
           const coverUrl = topPlayers.length > 0 ? topPlayers[0].imageUrl : null;
@@ -128,7 +128,8 @@ export default function LivePacks() {
             name: title,
             playersCount: playerLinks.length,
             coverUrl,
-            topPlayers
+            topPlayers,
+            allPlayers
           });
         });
 
@@ -151,6 +152,10 @@ export default function LivePacks() {
 
   const handleAnalyzePack = (pack) => {
     navigate('/live-packs/analyze', { state: { pack, allPacks: packs } });
+  };
+
+  const handleSimulatePack = (pack) => {
+    navigate('/simulator', { state: { pack } });
   };
 
   return (
@@ -223,10 +228,16 @@ export default function LivePacks() {
                     <p className="text-lg font-black text-white">{pack.playersCount} joueurs détectés</p>
                   </div>
                 </div>
-                <button onClick={() => handleAnalyzePack(pack)} className="btn-secondary w-full text-xs py-2 flex justify-center items-center gap-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                  Analyser la Box
-                </button>
+                <div className="flex gap-2">
+                  <button onClick={() => handleAnalyzePack(pack)} className="btn-secondary w-full text-xs py-2 flex justify-center items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                    Analyser
+                  </button>
+                  <button onClick={() => handleSimulatePack(pack)} className="btn-primary w-full text-xs py-2 flex justify-center items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" /></svg>
+                    Simuler
+                  </button>
+                </div>
               </div>
             </div>
           ))}

@@ -49,11 +49,41 @@ export function useDataManagement(toast, confirm) {
     });
     if (!isConfirmed) return;
 
-    // Simulate work
-    setTimeout(() => {
-      logAudit("RECALCULATE", "Recalcul des métriques analytiques effectué.");
+    toast("Recalcul en cours...", "info");
+
+    try {
+      await db.transaction('rw', db.accounts, db.coinLogs, async () => {
+        const accounts = await db.accounts.toArray();
+        const logs = await db.coinLogs.toArray();
+        
+        for (const acc of accounts) {
+          const accLogs = logs.filter(l => l.accountId === acc.id).sort((a, b) => a.id - b.id);
+          let totalGrowth = 0;
+          let totalDecline = 0;
+          let lastTransactionDiff = 0;
+          
+          if (accLogs.length > 0) {
+            accLogs.forEach(log => {
+              const diff = log.newBalance - log.previousBalance;
+              if (diff > 0) totalGrowth += diff;
+              if (diff < 0) totalDecline += Math.abs(diff);
+            });
+            const lastLog = accLogs[accLogs.length - 1];
+            lastTransactionDiff = lastLog.newBalance - lastLog.previousBalance;
+          }
+          
+          await db.accounts.update(acc.id, {
+            totalGrowth,
+            totalDecline,
+            lastTransactionDiff
+          });
+        }
+      });
+      await logAudit("RECALCULATE", "Recalcul des métriques analytiques effectué.");
       toast("Analytics recalculées avec succès !", "success");
-    }, 1000);
+    } catch (err) {
+      toast("Erreur lors du recalcul : " + err.message, "error");
+    }
   }
 
   async function resetAllAccounts(accountsCount) {

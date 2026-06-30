@@ -20,7 +20,11 @@ export default function BilanTracker() {
   const confirm = useConfirm();
   
   const accounts = useLiveQuery(() => db.accounts.toArray(), []);
-  const coinLogs = useLiveQuery(() => db.coinLogs.toArray(), []);
+  const [coinLogs, setCoinLogs] = useState(null);
+
+  useEffect(() => {
+    db.coinLogs.toArray().then(setCoinLogs);
+  }, []);
   const [snapshotData, setSnapshotData] = useState({});
   const [isSaving, setIsSaving] = useState(false);
   const [quickAddAccount, setQuickAddAccount] = useState("");

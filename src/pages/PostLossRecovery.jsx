@@ -7,7 +7,11 @@ import { getNextGoal } from "../utils/goalEngine.js";
 export default function PostLossRecovery() {
   const navigate = useNavigate();
   const accounts = useLiveQuery(() => db.accounts.toArray(), []);
-  const coinLogs = useLiveQuery(() => db.coinLogs.toArray(), []);
+  const [coinLogs, setCoinLogs] = useState(null);
+
+  useEffect(() => {
+    db.coinLogs.toArray().then(setCoinLogs);
+  }, []);
 
   // Find the most recently affected account (last coinLog with negative delta)
   const recoveryData = (() => {

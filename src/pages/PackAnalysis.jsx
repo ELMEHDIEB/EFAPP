@@ -20,13 +20,45 @@ export default function PackAnalysis() {
     setPlayerFetchError(null);
   };
 
-  const pack = location.state?.pack;
-
+  const [packData, setPackData] = useState(location.state?.pack || null);
   const allPacks = location.state?.allPacks || [];
+
+  const handleFixPackType = (type) => {
+    if (!packData) return;
+    const updatedPack = { ...packData, playersCount: type === 'Epic' ? 150 : packData.allPlayers?.length || packData.topPlayers?.length || 11 };
+    
+    const updatePlayerCats = (arr) => {
+      if (!arr) return arr;
+      return arr.map((p, idx) => {
+        let newCat = 'Standard';
+        if (type === 'Epic') {
+          if (idx < 3) newCat = 'Epic';
+          else if (idx < 11) newCat = 'Highlight';
+        } else if (type === 'Highlight') {
+          newCat = 'Highlight';
+        }
+        return { ...p, cardCategory: newCat };
+      });
+    };
+
+    if (updatedPack.allPlayers) {
+      updatedPack.allPlayers = updatePlayerCats(updatedPack.allPlayers);
+      updatedPack.topPlayers = updatedPack.allPlayers.slice(0, 5);
+    } else if (updatedPack.topPlayers) {
+      updatedPack.topPlayers = updatePlayerCats(updatedPack.topPlayers);
+    }
+    
+    setPackData(updatedPack);
+    // If a player is currently selected, update their category in the modal too
+    if (selectedPlayer) {
+      const updatedPlayer = (updatedPack.allPlayers || updatedPack.topPlayers)?.find(p => p.id === selectedPlayer.id);
+      if (updatedPlayer) setSelectedPlayer(updatedPlayer);
+    }
+  };
 
   const accounts = useLiveQuery(() => db.accounts.toArray(), []) || [];
 
-  if (!pack) {
+  if (!packData) {
     return (
       <div className="max-w-3xl mx-auto pb-12 space-y-6 text-center pt-20">
         <p className="text-danger font-bold">Aucun pack sélectionné.</p>
@@ -46,7 +78,7 @@ export default function PackAnalysis() {
     return ratings.length > 0 ? Math.max(...ratings) : 0;
   };
 
-  const currentPackMaxRating = getPackMaxRating(pack);
+  const currentPackMaxRating = getPackMaxRating(packData);
   
   let betterAlternative = null;
   if (allPacks.length > 0) {
@@ -54,14 +86,14 @@ export default function PackAnalysis() {
     const bestPackInMarket = sortedPacks[0];
     
     // If the best pack in the market has a significantly higher rating than the current pack
-    if (bestPackInMarket.id !== pack.id && getPackMaxRating(bestPackInMarket) > currentPackMaxRating) {
+    if (bestPackInMarket.id !== packData.id && getPackMaxRating(bestPackInMarket) > currentPackMaxRating) {
       betterAlternative = bestPackInMarket;
     }
   }
 
   // Logical Evaluation for "Le Verdict"
-  const isBigBox = pack.playersCount > 50; 
-  const validRatings = pack.topPlayers.map(p => parseInt(p.rating, 10)).filter(r => !isNaN(r) && r > 0);
+  const isBigBox = packData.playersCount > 50; 
+  const validRatings = packData.topPlayers.map(p => parseInt(p.rating, 10)).filter(r => !isNaN(r) && r > 0);
   const avgRating = validRatings.length > 0 ? validRatings.reduce((a, b) => a + b, 0) / validRatings.length : 0;
   const hasMegaPlayer = validRatings.some(r => r >= 96);
 
@@ -157,21 +189,37 @@ export default function PackAnalysis() {
         <div className="lg:col-span-2 space-y-6">
           <div className="pro-card overflow-hidden">
             <div className="p-6 border-b border-white/5 flex justify-between items-center bg-ink/50">
-              <h2 className="text-lg font-bold text-white">{pack.name}</h2>
+              <div className="flex items-center gap-3">
+                <h2 className="text-lg font-bold text-white">{packData.name}</h2>
+                <div className="flex bg-black/30 rounded p-0.5">
+                  <button 
+                    onClick={() => handleFixPackType('Epic')} 
+                    className={`text-[9px] font-bold px-2 py-1 rounded transition-colors ${isBigBox ? 'bg-amber-500/20 text-amber-500' : 'text-textdim hover:text-white'}`}
+                  >
+                    150 (Epic)
+                  </button>
+                  <button 
+                    onClick={() => handleFixPackType('Highlight')} 
+                    className={`text-[9px] font-bold px-2 py-1 rounded transition-colors ${!isBigBox ? 'bg-blue-500/20 text-blue-400' : 'text-textdim hover:text-white'}`}
+                  >
+                    11 (Highlight)
+                  </button>
+                </div>
+              </div>
               <span className="text-[10px] uppercase tracking-widest text-textdim font-bold bg-white/5 px-2 py-1 rounded">
-                {pack.playersCount} Joueurs
+                {packData.playersCount} Joueurs
               </span>
             </div>
             <div className="p-6 bg-gradient-to-br from-panel to-ink">
               <p className="text-[10px] uppercase tracking-widest text-textdim font-bold mb-4">Top Joueurs Détectés</p>
               <div className="flex flex-wrap gap-4">
-                {pack.topPlayers?.map((p, idx) => (
+                {packData.topPlayers?.map((p, idx) => (
                   <div key={idx} onClick={() => handlePlayerClick(p)} className="relative group w-24 cursor-pointer">
                     <img src={p.imageUrl} alt={p.name} title={p.name} className="w-full object-contain drop-shadow-2xl transition-transform hover:scale-110" />
                     {p.rating && (
                       <div className="absolute -bottom-2 -right-2 bg-black/90 border border-white/10 text-white text-[10px] font-black px-2 py-1 rounded shadow-lg flex flex-col items-center leading-none">
                         <span>{p.rating}</span>
-                        {p.cardCategory && <span className="text-[8px] text-accent/80 mt-0.5">{p.cardCategory}</span>}
+                        {p.cardCategory && <span className={`text-[8px] mt-0.5 ${p.cardCategory === 'Epic' ? 'text-amber-500' : p.cardCategory === 'Highlight' ? 'text-blue-400' : 'text-accent/80'}`}>{p.cardCategory}</span>}
                       </div>
                     )}
                   </div>
@@ -196,17 +244,23 @@ export default function PackAnalysis() {
           {/* Boutons d'Action */}
           <div className="flex flex-col sm:flex-row gap-4">
             <button 
-              onClick={() => navigate('/epic-calculator', { state: { prefillName: pack.name } })} 
+              onClick={() => navigate('/simulator', { state: { pack: packData } })} 
+              className="btn-primary flex-1 py-3 text-sm flex justify-center items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" /></svg>
+              Lancer le Simulateur de Box
+            </button>
+            <button 
+              onClick={() => navigate('/epic-calculator', { state: { prefillName: packData.name } })} 
               className="btn-secondary flex-1 py-3 text-sm flex justify-center items-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
-              Simuler (Epic Calculator)
+              Calculer Pity (Epic Calc)
             </button>
             <button 
               onClick={() => navigate('/spin-tracker')} 
-              className={`flex-1 py-3 text-sm flex justify-center items-center gap-2 ${verdict.canSpin ? 'btn-primary' : 'bg-surfaceInteractive text-textdim border border-border rounded-lg hover:text-white hover:border-white/20 transition-colors'}`}
+              className={`flex-1 py-3 text-sm flex justify-center items-center gap-2 ${verdict.canSpin ? 'bg-surfaceElevated border border-white/20 text-white hover:bg-white/10' : 'bg-surfaceInteractive text-textdim border border-border rounded-lg hover:text-white hover:border-white/20 transition-colors'}`}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" /></svg>
               Aller au Spin Tracker
             </button>
           </div>

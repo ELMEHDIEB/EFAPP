@@ -6,7 +6,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 /**
  * createSpin: validate balance, deduct coins and write spin log atomically.
  */
-export async function createSpin(accountId, { packName, coinsSpent, spins, satisfactionScore, wasPlanned, emotionBefore, emotionAfter, playerNames, customDate }) {
+export async function createSpin(accountId, { packName, coinsSpent, spins, satisfactionScore, wasPlanned, emotionBefore, emotionAfter, players, customDate }) {
   const account = await db.accounts.get(accountId);
   if (!account) throw new Error("Compte introuvable.");
 
@@ -40,13 +40,35 @@ export async function createSpin(accountId, { packName, coinsSpent, spins, satis
     });
 
     // 3. Add players
-    if (playerNames && Array.isArray(playerNames) && playerNames.length > 0) {
-      const playersToInsert = playerNames
-        .map(p => ({
+    if (players && Array.isArray(players) && players.length > 0) {
+      const playersToInsert = [];
+      
+      for (const p of players) {
+        let pId = p.id;
+        let pName = p.name.trim();
+        if (!pName) continue;
+        
+        // Auto-create unknown player in the roster
+        if (!pId) {
+          pId = await db.players.add({
+            accountId,
+            name: pName,
+            cardType: p.cardType || "Standard",
+            isBooster: false,
+            overall: 0,
+            position: "",
+            club: "",
+            nation: "",
+            efhubId: ""
+          });
+        }
+        
+        playersToInsert.push({
           spinId,
-          playerName: p.trim()
-        }))
-        .filter(p => p.playerName !== "");
+          playerId: pId,
+          playerName: pName
+        });
+      }
 
       if (playersToInsert.length > 0) {
         await db.spinPlayers.bulkAdd(playersToInsert);
