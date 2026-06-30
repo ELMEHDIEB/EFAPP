@@ -162,6 +162,72 @@ export default function Settings() {
             triggerInstall={triggerInstall}
           />
 
+          {/* Settings Grid (Proxy + Data) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Connexion & API */}
+            <div className="pro-card p-6 flex flex-col">
+              <h2 className="pro-heading mb-6">Connexion & API (Proxy)</h2>
+              <div className="p-4 bg-ink rounded-xl border border-white/5 space-y-4 flex-1 flex flex-col">
+                <div>
+                  <p className="text-sm font-bold text-white mb-1">Serveur Proxy (CORS)</p>
+                  <p className="text-xs text-textdim leading-relaxed">
+                    Utilisé pour contourner les restrictions CORS. Par défaut : <code className="bg-panel px-1 py-0.5 rounded text-[10px]">allorigins.win</code>
+                  </p>
+                </div>
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  const form = e.target;
+                  const val = form.elements.proxy.value.trim();
+                  if (val) {
+                    await db.settings.put({ key: "customProxy", value: val });
+                    toast("Proxy personnalisé enregistré.", "success");
+                  } else {
+                    await db.settings.delete("customProxy");
+                    toast("Proxy réinitialisé à celui par défaut.", "success");
+                  }
+                }} className="flex flex-col gap-3 mt-auto">
+                  <input 
+                    name="proxy"
+                    type="text" 
+                    defaultValue={settings.find(s => s.key === "customProxy")?.value || ""}
+                    placeholder="ex: https://my-proxy.com/?url=" 
+                    className="input w-full text-xs"
+                  />
+                  <div className="flex gap-2">
+                    <button type="submit" className="btn-primary py-2 text-xs flex-1">
+                      Sauvegarder
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={async (e) => {
+                        e.currentTarget.form.elements.proxy.value = "";
+                        await db.settings.delete("customProxy");
+                        toast("Proxy réinitialisé.", "success");
+                      }} 
+                      className="btn-secondary py-2 text-xs"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            {/* Données & Maintenance */}
+            <div className="pro-card p-6 flex flex-col">
+              <h2 className="pro-heading mb-6">Données & Maintenance</h2>
+              <div className="p-4 bg-ink rounded-xl border border-white/5 flex-1 flex flex-col">
+                <p className="text-sm font-bold text-white mb-1">Application Reset Center</p>
+                <p className="text-xs text-textdim mb-4">Gérez vos données locales, sauvegardes, et réinitialisations système.</p>
+                <div className="mt-auto">
+                  <button onClick={() => navigate('/settings/data-management')} className="btn-secondary w-full text-xs py-2">
+                    Data Management
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         {/* Right Column: Health & Maintenance */}
@@ -193,67 +259,6 @@ export default function Settings() {
                   </div>
                 ))
               )}
-            </div>
-          </div>
-
-          {/* Connexion & API */}
-          <div className="pro-card p-6">
-            <h2 className="pro-heading mb-6">Connexion & API (Proxy)</h2>
-            <div className="p-4 bg-ink rounded-xl border border-white/5 space-y-4">
-              <div>
-                <p className="text-sm font-bold text-white mb-1">Serveur Proxy (CORS)</p>
-                <p className="text-xs text-textdim leading-relaxed">
-                  Utilisé pour contourner les restrictions CORS lors de la récupération des packs en direct. Par défaut : <code className="bg-panel px-1 py-0.5 rounded text-[10px]">allorigins.win</code>
-                </p>
-              </div>
-              <form onSubmit={async (e) => {
-                e.preventDefault();
-                const form = e.target;
-                const val = form.elements.proxy.value.trim();
-                if (val) {
-                  await db.settings.put({ key: "customProxy", value: val });
-                  toast("Proxy personnalisé enregistré.", "success");
-                } else {
-                  await db.settings.delete("customProxy");
-                  toast("Proxy réinitialisé à celui par défaut.", "success");
-                }
-              }} className="flex flex-col gap-3">
-                <input 
-                  name="proxy"
-                  type="text" 
-                  defaultValue={settings.find(s => s.key === "customProxy")?.value || ""}
-                  placeholder="ex: https://my-proxy.com/?url=" 
-                  className="input w-full text-xs"
-                />
-                <div className="flex gap-2">
-                  <button type="submit" className="btn-primary py-2 text-xs flex-1">
-                    Sauvegarder
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={async (e) => {
-                      e.currentTarget.form.elements.proxy.value = "";
-                      await db.settings.delete("customProxy");
-                      toast("Proxy réinitialisé.", "success");
-                    }} 
-                    className="btn-secondary py-2 text-xs"
-                  >
-                    Reset
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-
-          {/* Données & Maintenance */}
-          <div className="pro-card p-6">
-            <h2 className="pro-heading mb-6">Données & Maintenance</h2>
-            <div className="p-4 bg-ink rounded-xl border border-white/5">
-              <p className="text-sm font-bold text-white mb-1">Application Reset Center</p>
-              <p className="text-xs text-textdim mb-4">Gérez vos données locales, sauvegardes, et réinitialisations système.</p>
-              <button onClick={() => navigate('/settings/data-management')} className="btn-secondary w-full text-xs">
-                Data Management
-              </button>
             </div>
           </div>
 

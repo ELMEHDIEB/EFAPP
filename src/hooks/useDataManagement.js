@@ -147,8 +147,77 @@ export function useDataManagement(toast, confirm) {
     }, 1500);
   }
 
+  async function importBackup() {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        try {
+          const dump = JSON.parse(ev.target.result);
+          if (!dump.accounts || !dump.settings) throw new Error("Format de backup invalide.");
+          
+          const isConfirmed = await confirm({
+            title: "Restaurer le backup ?",
+            message: "Toutes les données actuelles seront écrasées par celles du backup. Continuer ?",
+            confirmLabel: "Restaurer",
+            cancelLabel: "Annuler",
+            isDanger: true
+          });
+          if (!isConfirmed) return;
+
+          await db.transaction('rw', TABLES.map(t => db[t]), async () => {
+            for (const t of TABLES) {
+              await db[t].clear();
+              if (dump[t] && dump[t].length > 0) {
+                await db[t].bulkAdd(dump[t]);
+              }
+            }
+          });
+          await logAudit("BACKUP_RESTORE", "Restauration d'un backup JSON.");
+          toast("Backup restauré avec succès !", "success");
+        } catch (err) {
+          toast("Erreur lors de la restauration : " + err.message, "error");
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }
+
+  async function verifyBackup() {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const dump = JSON.parse(ev.target.result);
+          if (!dump.accounts || !dump.settings) throw new Error("Format de backup invalide.");
+          
+          const tablesCount = Object.keys(dump).length;
+          const totalRecords = Object.values(dump).reduce((acc, table) => acc + (table.length || 0), 0);
+          
+          toast(`Backup valide ! Contient ${tablesCount} tables et ${totalRecords} enregistrements.`, "success");
+        } catch (err) {
+          toast("Backup corrompu ou invalide : " + err.message, "error");
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }
+
   return {
     exportBackup,
+    importBackup,
+    verifyBackup,
     recalculateAnalytics,
     resetAllAccounts,
     deleteAllCoinLogs,

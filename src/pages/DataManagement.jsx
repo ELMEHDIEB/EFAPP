@@ -40,6 +40,8 @@ export default function DataManagement() {
 
   const {
     exportBackup,
+    importBackup,
+    verifyBackup,
     recalculateAnalytics,
     resetAllAccounts,
     deleteAllCoinLogs,
@@ -88,8 +90,8 @@ export default function DataManagement() {
             <div className="flex flex-wrap gap-3">
               <button onClick={exportBackup} className="btn-primary flex-1">Create</button>
               <button onClick={exportBackup} className="btn-secondary flex-1">Download</button>
-              <button disabled className="btn-secondary flex-1 opacity-50 cursor-not-allowed">Restore</button>
-              <button disabled className="btn-secondary flex-1 opacity-50 cursor-not-allowed">Verify</button>
+              <button onClick={importBackup} className="btn-secondary flex-1 hover:text-accent transition-colors">Restore</button>
+              <button onClick={verifyBackup} className="btn-secondary flex-1 hover:text-white transition-colors">Verify</button>
             </div>
           </div>
 

@@ -195,7 +195,7 @@ export default function Accounts() {
   );
 }
 
-function ModalShell({ title, onClose, children }) {
+function ModalShell({ title, onClose, children, maxWidth = "max-w-md" }) {
   const modalRef = useRef(null);
   const previousFocusRef = useRef(null);
 
@@ -234,7 +234,7 @@ function ModalShell({ title, onClose, children }) {
 
   return (
     <div className="fixed inset-0 bg-ink/90 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-      <div ref={modalRef} className="bg-panel border border-white/10 p-6 rounded-2xl w-full max-w-md shadow-[0_10px_40px_rgba(0,0,0,0.8)] relative overflow-hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div ref={modalRef} className={`bg-panel border border-white/10 p-6 rounded-2xl w-full ${maxWidth} shadow-[0_10px_40px_rgba(0,0,0,0.8)] relative overflow-hidden`} role="dialog" aria-modal="true" aria-labelledby="modal-title">
         <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
         <div className="relative z-10">
           <div className="flex items-center justify-between mb-8">
@@ -246,6 +246,24 @@ function ModalShell({ title, onClose, children }) {
           {children}
         </div>
       </div>
+    </div>
+  );
+}
+
+function ForgeInput({ valid, ...props }) {
+  return (
+    <div className="w-full rounded-xl border border-neutral-800 p-4 flex items-center justify-between gap-4 bg-gradient-to-r from-neutral-900 to-neutral-950 focus-within:ring-1 focus-within:ring-white/20 transition-all">
+      <input
+        {...props}
+        className={`bg-transparent border-none outline-none w-full text-base font-semibold text-white placeholder-neutral-500 ${props.className || ''}`}
+      />
+      {valid && (
+        <div className="shrink-0 flex items-center justify-center w-5 h-5 rounded-full bg-green-500">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </div>
+      )}
     </div>
   );
 }
@@ -268,59 +286,60 @@ function AddAccountModal({ onClose, onError, error }) {
   }
 
   return (
-    <ModalShell title="Nouveau compte" onClose={onClose}>
+    <ModalShell title="Nouveau compte" onClose={onClose} maxWidth="max-w-lg">
       <form onSubmit={submit} className="flex flex-col gap-4">
         <Field label="Nom du compte">
-          <input
+          <ForgeInput
             autoFocus
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="ex: AC2"
-            className="input"
+            valid={name.length > 0}
           />
         </Field>
-        <Field label="Solde actuel">
-          <input
-            type="number"
-            min="0"
-            value={currentCoins}
-            onChange={(e) => setCurrentCoins(e.target.value)}
-            className="input"
-          />
-        </Field>
-        <Field label="Objectif (coins)">
-          <input
-            type="number"
-            min="1"
-            value={targetCoins}
-            onChange={(e) => setTargetCoins(e.target.value)}
-            className="input"
-          />
-        </Field>
-        <Field label="Limite hebdomadaire (0 = aucune)">
-          <input
-            type="number"
-            min="0"
-            value={weeklyLimit}
-            onChange={(e) => setWeeklyLimit(e.target.value)}
-            className="input text-warn focus:border-warn"
-            placeholder="ex: 300"
-          />
-        </Field>
-        <Field label="Groupe (optionnel)">
-          <input
-            value={groupTag}
-            onChange={(e) => setGroupTag(e.target.value)}
-            placeholder="ex: Principal, Farm, Test"
-            className="input"
-          />
-        </Field>
+            <Field label="Solde actuel">
+              <ForgeInput
+                type="number"
+                min="0"
+                value={currentCoins}
+                onChange={(e) => setCurrentCoins(e.target.value)}
+                valid={currentCoins !== ""}
+              />
+            </Field>
+            <Field label="Objectif (coins)">
+              <ForgeInput
+                type="number"
+                min="1"
+                value={targetCoins}
+                onChange={(e) => setTargetCoins(e.target.value)}
+                valid={targetCoins !== ""}
+              />
+            </Field>
+            <Field label="Limite hebdomadaire (0 = aucune)">
+              <ForgeInput
+                type="number"
+                min="0"
+                value={weeklyLimit}
+                onChange={(e) => setWeeklyLimit(e.target.value)}
+                placeholder="ex: 300"
+                className="text-warn"
+                valid={weeklyLimit !== ""}
+              />
+            </Field>
+            <Field label="Groupe (optionnel)">
+              <ForgeInput
+                value={groupTag}
+                onChange={(e) => setGroupTag(e.target.value)}
+                placeholder="ex: Principal, Farm, Test"
+                valid={groupTag.length > 0}
+              />
+            </Field>
 
-        {error && <p className="text-xs text-danger font-medium">{error}</p>}
+            {error && <p className="text-xs text-danger font-medium">{error}</p>}
 
-        <button type="submit" className="btn-primary mt-2">
-          Créer le compte
-        </button>
+            <button type="submit" className="btn-primary mt-2">
+              Créer le compte
+            </button>
       </form>
     </ModalShell>
   );
