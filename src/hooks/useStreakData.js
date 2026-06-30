@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db.js';
+import { db } from '../db';
 
 export function useStreakData() {
   // Query the last spin log to find when the last impulsive/spin action occurred

@@ -1,9 +1,12 @@
+import { useAccounts, useCoinLogs } from "../hooks/useQueries";
+import Skeleton from "../components/ui/Skeleton.jsx";
+import { AnimatedList } from "../components/ui/AnimatedList.jsx";
 import React from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useNavigate } from "react-router-dom";
 import { usePortfolioStats } from "../hooks/usePortfolioStats.js";
 import { useStreakData } from "../hooks/useStreakData.js";
-import { db } from "../db.js";
+import { db } from "../db";
 import { getNextGoal, getGoalDistribution } from "../utils/goalEngine.js";
 import HeroHeader from "../components/ui/HeroHeader.jsx";
 import EmptyState from "../components/ui/EmptyState.jsx";
@@ -13,8 +16,8 @@ import { AreaChart, Area, Tooltip, ResponsiveContainer } from "recharts";
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const accounts = useLiveQuery(() => db.accounts.toArray(), []);
-  const recentTransactions = useLiveQuery(() => db.coinLogs.reverse().limit(5).toArray(), []) || [];
+  const accounts = useAccounts();
+  const recentTransactions = useCoinLogs(5, true) || [];
   const [portfolioHistory, setPortfolioHistory] = React.useState([]);
   const { streakDays, needsCheckin, isLoading: isStreakLoading } = useStreakData();
 
@@ -88,7 +91,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto pb-12 space-y-8 animate-in fade-in duration-500">
+    <AnimatedList className="max-w-7xl mx-auto pb-12 space-y-8 animate-in fade-in duration-500">
       {!isStreakLoading && needsCheckin && <DailyCheckinModal onClose={() => {}} />}
       {!isStreakLoading && <StreakWidget streakDays={streakDays} />}
       <HeroHeader 
@@ -328,7 +331,7 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-    </div>
+    </AnimatedList>
   );
 }
 

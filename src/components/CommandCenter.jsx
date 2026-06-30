@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "../db.js";
+import { db } from "../db";
 import { applyCoinChange } from "../accountActions.js";
 import { useToast } from "./ui/ToastContext.jsx";
 

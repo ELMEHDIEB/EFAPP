@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { db } from '../../db.js';
+import { db } from '../../db';
 
 const EMOTIONS = [
   { id: 'Zen', emoji: '🧘‍♂️', color: 'bg-green-500/20 text-green-400 border-green-500/50' },

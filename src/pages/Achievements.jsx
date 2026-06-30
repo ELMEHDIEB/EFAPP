@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "../db.js";
+import { db } from "../db";
 import { getDisciplineScore } from "../scoreActions.js";
 import HeroHeader from "../components/ui/HeroHeader.jsx";
 import EmptyState from "../components/ui/EmptyState.jsx";

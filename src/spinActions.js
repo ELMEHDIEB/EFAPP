@@ -1,4 +1,4 @@
-import { db } from "./db.js";
+import { db } from "./db";
 import { applyCoinChange } from "./accountActions.js";
 
 const today = () => new Date().toISOString().slice(0, 10);

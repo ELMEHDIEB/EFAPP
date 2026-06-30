@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "../../db.js";
+import { db } from "../../db";
 
 export function CommandPalette() {
   const [isOpen, setIsOpen] = useState(false);

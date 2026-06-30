@@ -1,7 +1,7 @@
 import { useState, Suspense, lazy } from "react";
 import { Routes, Route } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "./db.js";
+import { db } from "./db";
 
 import { ToastProvider } from "./components/ui/ToastContext.jsx";
 import { ConfirmProvider } from "./components/ui/ConfirmContext.jsx";

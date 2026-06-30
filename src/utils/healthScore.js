@@ -1,4 +1,4 @@
-import { db } from "../db.js";
+import { db } from "../db";
 import { getDisciplineScore } from "../scoreActions.js";
 import { getNextGoal } from "./goalEngine.js";
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "../db.js";
+import { db } from "../db";
 import { useAnalyticsData } from "../hooks/useAnalyticsData.js";
 import { useAccountScores } from "../hooks/useAccountScores.js";
 import { 

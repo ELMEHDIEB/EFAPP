@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "../db.js";
+import { db } from "../db";
 import { SpinHistory } from "../components/spin/SpinHistory.jsx";
 import { SpinWizard } from "../components/spin/SpinWizard.jsx";
 

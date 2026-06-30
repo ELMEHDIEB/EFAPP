@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "../../db.js";
+import { db } from "../../db";
 
 export function PlayerSelect({ accountId, selectedPlayers, onChange }) {
   const [query, setQuery] = useState("");

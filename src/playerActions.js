@@ -1,4 +1,4 @@
-import { db } from "./db.js";
+import { db } from "./db";
 
 /** Create a new player in the database for a specific account. */
 export async function createPlayer(accountId, playerData) {

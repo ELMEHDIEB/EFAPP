@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "../db.js";
+import { db } from "../db";
 import { getRecoveryPlan } from "../utils/psychEngine.js";
 import { getNextGoal } from "../utils/goalEngine.js";
 

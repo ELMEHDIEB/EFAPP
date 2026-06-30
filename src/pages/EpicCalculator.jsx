@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "../db.js";
+import { db } from "../db";
 import HeroHeader from "../components/ui/HeroHeader.jsx";
 import ExpandableCard from "../components/forgeui/expandable-card.jsx";
 

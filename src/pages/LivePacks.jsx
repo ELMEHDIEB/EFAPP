@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import HeroHeader from "../components/ui/HeroHeader.jsx";
 import { useToast } from "../components/ui/ToastContext.jsx";
-import { db } from "../db.js";
+import { db } from "../db";
 
 export default function LivePacks() {
   const [packs, setPacks] = useState([]);

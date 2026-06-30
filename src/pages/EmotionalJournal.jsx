@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "../db.js";
+import { db } from "../db";
 import { classifyImpulseRisk } from "../spinActions.js";
 
 export default function EmotionalJournal() {

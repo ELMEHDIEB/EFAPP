@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "../db.js";
+import { db } from "../db";
 import { getNextGoal } from "../utils/goalEngine.js";
 import { getHealthScore } from "../utils/healthScore.js";
 import DataTable from "../components/ui/DataTable.jsx";

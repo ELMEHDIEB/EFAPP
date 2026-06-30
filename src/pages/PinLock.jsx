@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { db } from "../db.js";
+import { db } from "../db";
 import { sha256 } from "../utils/crypto.js";
 import {
   InputOTP,
