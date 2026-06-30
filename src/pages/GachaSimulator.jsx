@@ -64,7 +64,7 @@ export default function GachaSimulator() {
 
       importedPack.allPlayers.forEach((p, index) => {
         let type = 'Standard';
-        
+
         if (boxMode === 'auto') {
           const rawType = (p.cardCategory && p.cardCategory !== 'Standard') ? p.cardCategory : 'Standard';
           type = rawType === 'Show Time' || rawType === 'Big Time' ? 'Epic' : (rawType === 'POTW' ? 'Highlight' : rawType);
@@ -126,7 +126,7 @@ export default function GachaSimulator() {
 
   const handleSpin = async (amount) => {
     if (box.length < amount) return;
-    
+
     setIsSpinning(true);
     // Simulate network/spin delay
     await new Promise(r => setTimeout(r, 600));
@@ -138,7 +138,7 @@ export default function GachaSimulator() {
     for (let i = 0; i < amount; i++) {
       const randomIndex = Math.floor(Math.random() * newBox.length);
       const pulledItem = newBox.splice(randomIndex, 1)[0];
-      
+
       const pullObj = {
         id: Date.now() + i,
         ...pulledItem,
@@ -197,7 +197,7 @@ export default function GachaSimulator() {
 
   return (
     <div className="max-w-5xl mx-auto pb-12 space-y-6">
-      <HeroHeader 
+      <HeroHeader
         title={importedPack ? `Simulateur : ${importedPack.name}` : "Simulateur de Tirage"}
         description={importedPack ? `Simulation basée sur les données du live pack eFHUB.` : "Testez votre chance virtuellement sur une box classique de 150 joueurs."}
       />
@@ -211,12 +211,12 @@ export default function GachaSimulator() {
                 DATA IMPORTÉE
               </div>
             )}
-            
+
             <div className="flex justify-between items-start mb-4">
               <h3 className="text-lg font-bold text-white">Statut de la Box</h3>
               {importedPack && (
-                <select 
-                  value={boxMode} 
+                <select
+                  value={boxMode}
                   onChange={(e) => setBoxMode(e.target.value)}
                   className="bg-surfaceElevated border border-border rounded text-xs text-textdim px-2 py-1 outline-none"
                 >
@@ -226,7 +226,7 @@ export default function GachaSimulator() {
                 </select>
               )}
             </div>
-            
+
             <div className="flex justify-between items-end mb-2">
               <span className="text-3xl font-black text-white">{remainingStats.total} <span className="text-sm font-medium text-textdim">/ {boxConfig.total}</span></span>
             </div>
@@ -257,29 +257,44 @@ export default function GachaSimulator() {
               <span className="text-textmuted">Coins dépensés</span>
               <span className="text-2xl font-black text-accent">{coinsSpent}</span>
             </div>
-            
-            <button 
+
+            <button
               onClick={resetBox}
               className="mt-6 w-full py-2 bg-surfaceElevated hover:bg-white/5 border border-white/10 rounded-lg text-sm text-white font-medium transition-colors"
             >
               Réinitialiser la Box
             </button>
-            
+
             {importedPack && (
-              <button 
+              <button
                 onClick={() => navigate('/live-packs')}
                 className="mt-3 w-full py-2 bg-transparent hover:bg-white/5 border border-transparent hover:border-white/10 rounded-lg text-xs text-textdim transition-colors"
               >
                 Changer de Pack
               </button>
             )}
+
+            {/* Bouton de test Dev */}
+            <button
+              onClick={() => {
+                setEpicPulled([
+                  { player: { name: 'RONALDINHO G.', rating: 103, imageUrl: 'https://placehold.co/400x600/111/ffd700.png?text=RONALDINHO' } },
+                  { player: { name: 'P. VIEIRA', rating: 102, imageUrl: 'https://placehold.co/400x600/111/ffd700.png?text=VIEIRA' } }
+                ]);
+                setTimeout(() => setEpicPulled(null), 6000);
+              }}
+              className="mt-6 w-full py-2 bg-black hover:bg-white/10 border border-white/20 rounded-lg text-xs text-white/50 hover:text-white font-mono transition-colors flex justify-center items-center gap-2 group"
+            >
+              <svg className="w-3 h-3 text-amber-500 group-hover:animate-pulse" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd"></path></svg>
+              DEV: Tester l'Animation Multi-Epic
+            </button>
           </div>
         </div>
 
         {/* Right Column: Actions & History */}
         <div className="md:col-span-2 space-y-6">
           <div className="grid grid-cols-2 gap-4">
-            <button 
+            <button
               disabled={isSpinning || remainingStats.total < 1}
               onClick={() => handleSpin(1)}
               className="relative overflow-hidden group bg-surface border border-white/10 p-6 rounded-2xl hover:border-white/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -291,7 +306,7 @@ export default function GachaSimulator() {
               </div>
             </button>
 
-            <button 
+            <button
               disabled={isSpinning || remainingStats.total < 10}
               onClick={() => handleSpin(10)}
               className="relative overflow-hidden group bg-surface border border-accent/30 p-6 rounded-2xl hover:border-accent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -336,42 +351,46 @@ export default function GachaSimulator() {
       {/* Epic Animation Modal */}
       <AnimatePresence>
         {epicPulled && epicPulled.length > 0 && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className={`fixed inset-0 z-[100] flex items-center justify-center backdrop-blur-md pointer-events-none transition-colors duration-1000 ${
-              epicPulled.length > 1 ? 'bg-black' : 'bg-ink/95'
-            }`}
+            className={`fixed inset-0 z-[100] flex items-center justify-center backdrop-blur-md pointer-events-none transition-colors duration-500 overflow-hidden ${epicPulled.length > 1 ? 'bg-black' : 'bg-ink/95'
+              }`}
           >
-            {/* Multi-Epic Black Animation Effects */}
+            {/* Multi-Epic Special Black Animation */}
             {epicPulled.length > 1 && (
               <>
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-white/10 via-black to-black opacity-80" />
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0 }}
-                  animate={{ opacity: [0, 1, 0], scale: [1, 1.5, 2] }}
-                  transition={{ duration: 1, repeat: Infinity, repeatDelay: 1 }}
-                  className="absolute inset-0 border-[20px] border-white/5 rounded-full blur-3xl pointer-events-none"
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: [0, 1, 0] }}
+                  transition={{ duration: 0.2, repeat: 3 }}
+                  className="absolute inset-0 bg-white z-0"
+                />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-amber-900/40 via-black to-black opacity-90 z-0" />
+                <motion.div
+                  initial={{ rotate: 0 }}
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                  className="absolute -inset-[100%] bg-[conic-gradient(from_0deg,transparent_0_340deg,rgba(255,255,255,0.3)_360deg)] z-0"
                 />
               </>
             )}
 
-            <div className={`text-center flex flex-col items-center gap-10 z-10 w-full max-w-6xl px-4 ${epicPulled.length > 1 ? 'justify-center' : ''}`}>
-              
+            <div className={`text-center flex flex-col items-center gap-6 z-10 w-full max-w-7xl px-4 ${epicPulled.length > 1 ? 'justify-center' : ''}`}>
+
               {/* Header Text */}
               <motion.div
-                initial={{ y: -50, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.2 }}
+                initial={epicPulled.length > 1 ? { scale: 5, opacity: 0 } : { y: -50, opacity: 0 }}
+                animate={epicPulled.length > 1 ? { scale: 1, opacity: 1 } : { y: 0, opacity: 1 }}
+                transition={epicPulled.length > 1 ? { type: "spring", stiffness: 300, damping: 15, delay: 0.5 } : { delay: 0.2 }}
                 className="space-y-2 relative z-20"
               >
-                <h2 className={`text-6xl md:text-8xl font-black tracking-tight ${
-                  epicPulled.length > 1 
-                    ? 'text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.8)]' 
+                <h2 className={`text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter italic ${epicPulled.length > 1
+                    ? 'text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-white to-amber-200 drop-shadow-[0_0_30px_rgba(255,255,255,0.8)]'
                     : 'text-amber-500 drop-shadow-[0_0_15px_rgba(245,158,11,1)]'
-                }`}>
-                  {epicPulled.length > 1 ? 'MULTI EPIC !!!' : (epicPulled[0].player?.name ? epicPulled[0].player.name.toUpperCase() : "EPIC PULLED!")}
+                  }`}>
+                  {epicPulled.length > 1 ? 'DOUBLE EPIC' : (epicPulled[0].player?.name ? epicPulled[0].player.name.toUpperCase() : "EPIC PULLED!")}
                 </h2>
                 {epicPulled.length === 1 && epicPulled[0].player?.rating && (
                   <p className="text-3xl text-white font-bold bg-amber-500/20 inline-block px-4 py-1 rounded-full border border-amber-500/50 mt-4">
@@ -381,53 +400,68 @@ export default function GachaSimulator() {
               </motion.div>
 
               {/* Cards Container */}
-              <div className={`flex flex-wrap justify-center items-center gap-8 md:gap-16 relative z-10 ${epicPulled.length > 1 ? 'mt-8' : ''}`}>
+              <div className={`flex flex-wrap justify-center items-center gap-4 md:gap-12 relative z-10 ${epicPulled.length > 1 ? 'mt-4' : ''}`}>
                 {epicPulled.length === 1 && (
                   <div className="absolute inset-0 bg-amber-500 blur-[100px] opacity-30 rounded-full z-0" />
                 )}
-                
-                {epicPulled.map((epic, idx) => (
-                  <motion.div 
-                    key={idx}
-                    initial={{ scale: 0.5, y: 100, opacity: 0 }}
-                    animate={{ scale: 1, y: 0, opacity: 1 }}
-                    transition={{ 
-                      type: "spring", 
-                      stiffness: 200, 
-                      damping: 20, 
-                      delay: epicPulled.length > 1 ? 0.5 + (idx * 0.3) : 0 
-                    }}
-                    className="relative group"
-                  >
-                    {/* Spotlights for Multi-Epic */}
-                    {epicPulled.length > 1 && (
-                      <motion.div 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: [0.5, 1, 0.5] }}
-                        transition={{ duration: 2, repeat: Infinity, delay: idx * 0.5 }}
-                        className="absolute inset-0 bg-white blur-[80px] opacity-20 rounded-full z-0" 
-                      />
-                    )}
 
-                    {epic.player?.imageUrl ? (
-                      <div className="relative flex flex-col items-center">
-                        <img 
-                          src={epic.player.imageUrl} 
-                          alt={epic.player.name} 
-                          className={`${epicPulled.length > 1 ? 'w-48 h-48 md:w-64 md:h-64' : 'w-64 h-64 md:w-80 md:h-80'} object-contain drop-shadow-[0_0_30px_rgba(245,158,11,0.6)] relative z-10`} 
+                {epicPulled.map((epic, idx) => {
+                  // For Double Epic: first comes from left (-100vw), second from right (100vw)
+                  const startX = epicPulled.length > 1 ? (idx % 2 === 0 ? '-100vw' : '100vw') : 0;
+                  const startY = epicPulled.length > 1 ? 0 : 100;
+
+                  return (
+                    <motion.div
+                      key={idx}
+                      initial={{ x: startX, y: startY, opacity: 0, rotateY: epicPulled.length > 1 ? 90 : 0 }}
+                      animate={{ x: 0, y: 0, opacity: 1, rotateY: 0 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: epicPulled.length > 1 ? 120 : 200,
+                        damping: epicPulled.length > 1 ? 12 : 20,
+                        delay: epicPulled.length > 1 ? 1.2 : 0,
+                        mass: 1.5
+                      }}
+                      className="relative group perspective-1000"
+                    >
+                      {/* Aura for Multi-Epic */}
+                      {epicPulled.length > 1 && (
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: [1, 1.2, 1] }}
+                          transition={{ duration: 2, repeat: Infinity, delay: 2 }}
+                          className="absolute inset-0 bg-amber-500 blur-[60px] opacity-40 rounded-full z-0"
                         />
-                        {epicPulled.length > 1 && epic.player?.name && (
-                          <div className="mt-4 bg-black/80 border border-white/20 px-4 py-2 rounded-lg text-white font-black tracking-widest text-lg md:text-xl relative z-20">
-                            {epic.player.name.toUpperCase()}
-                            {epic.player.rating && <span className="ml-3 text-amber-500">{epic.player.rating}</span>}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="text-9xl animate-bounce relative z-10">✨</div>
-                    )}
-                  </motion.div>
-                ))}
+                      )}
+
+                      {epic.player?.imageUrl ? (
+                        <motion.div
+                          className="relative flex flex-col items-center"
+                          whileHover={{ scale: 1.05 }}
+                        >
+                          <img
+                            src={epic.player.imageUrl}
+                            alt={epic.player.name}
+                            className={`${epicPulled.length > 1 ? 'w-48 h-64 md:w-64 md:h-80' : 'w-64 h-64 md:w-80 md:h-80'} object-contain drop-shadow-[0_20px_50px_rgba(245,158,11,0.8)] relative z-10`}
+                          />
+                          {epicPulled.length > 1 && epic.player?.name && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: 2.5 }}
+                              className="mt-6 bg-gradient-to-t from-black to-black/50 border-b-2 border-amber-500 px-6 py-3 rounded-xl text-white font-black tracking-widest text-xl md:text-2xl relative z-20 shadow-[0_0_20px_rgba(245,158,11,0.3)]"
+                            >
+                              {epic.player.name.toUpperCase()}
+                              {epic.player.rating && <span className="ml-4 text-amber-500">{epic.player.rating}</span>}
+                            </motion.div>
+                          )}
+                        </motion.div>
+                      ) : (
+                        <div className="text-9xl animate-bounce relative z-10">✨</div>
+                      )}
+                    </motion.div>
+                  )
+                })}
               </div>
 
             </div>
