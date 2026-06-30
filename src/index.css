@@ -11,12 +11,16 @@ html, body, #root {
   @apply bg-background text-white antialiased;
 }
 
-* {
-  scrollbar-width: none; /* Firefox */
+/* Global focus-visible ring for keyboard accessibility (WCAG 2.4.7) */
+*:focus-visible {
+  @apply outline-none ring-1 ring-white/50 ring-offset-1 ring-offset-background;
 }
-::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Edge */
-}
+
+/* Thin scrollbar for main content */
+main::-webkit-scrollbar { width: 4px; }
+main::-webkit-scrollbar-track { background: transparent; }
+main::-webkit-scrollbar-thumb { background: #27272A; border-radius: 2px; }
+main { scrollbar-width: thin; scrollbar-color: #27272A transparent; }
 
 .custom-scrollbar {
   scrollbar-width: none; /* Firefox */
@@ -41,7 +45,7 @@ html, body, #root {
   
   /* Buttons */
   .btn-base {
-    @apply inline-flex items-center justify-center font-medium text-sm rounded-lg px-4 py-2 transition-all duration-200 outline-none focus-visible:ring-1 focus-visible:ring-offset-1 focus-visible:ring-offset-ink;
+    @apply inline-flex items-center justify-center font-medium text-sm rounded-lg px-4 py-2 transition-all duration-200 outline-none focus-visible:ring-1 focus-visible:ring-offset-1 focus-visible:ring-offset-background;
   }
   
   .btn-primary {
