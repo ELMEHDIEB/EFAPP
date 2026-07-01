@@ -28,8 +28,8 @@ export default {
         white: "#FAFAFA",     // Zinc 50
       },
       fontFamily: {
-        mono: ["JetBrains Mono", "ui-monospace", "monospace"],
-        sans: ["Inter", "ui-sans-serif", "system-ui", "-apple-system", "sans-serif"],
+        mono: ["'Fira Code'", "ui-monospace", "monospace"],
+        sans: ["'Fira Sans'", "ui-sans-serif", "system-ui", "-apple-system", "sans-serif"],
       },
       boxShadow: {
         'glow': '0 0 15px var(--tw-shadow-color)',

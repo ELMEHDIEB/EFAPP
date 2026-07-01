@@ -34,7 +34,7 @@ export default function Accounts() {
   }
 
   return (
-    <div className="max-w-4xl">
+    <div className="max-w-4xl mx-auto pb-12 animate-in fade-in duration-300">
       <HeroHeader 
         title="Comptes"
         description="Gérez votre portefeuille de comptes."

@@ -6,7 +6,7 @@ import { db } from "./db";
 import { ToastProvider } from "./components/ui/ToastContext.jsx";
 import { ConfirmProvider } from "./components/ui/ConfirmContext.jsx";
 
-import Sidebar from "./components/Sidebar.jsx";
+import TopNavigation from "./components/TopNavigation.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import PinLock from "./pages/PinLock.jsx";
 import DashboardSkeleton from "./components/ui/DashboardSkeleton.jsx";
@@ -30,12 +30,23 @@ const PackAnalysis = lazy(() => import("./pages/PackAnalysis.jsx"));
 const SyncCenter = lazy(() => import("./pages/SyncCenter.jsx"));
 const PlayerDatabase = lazy(() => import("./pages/PlayerDatabase.jsx"));
 const GachaSimulator = lazy(() => import("./pages/GachaSimulator.jsx"));
+const SquadBuilder = lazy(() => import("./pages/SquadBuilder.jsx"));
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const settings = useLiveQuery(() => db.settings.toArray(), []);
 
-  if (!settings) return null; // Wait for IndexedDB
+  // Show a structural skeleton instead of blocking the whole UI with a blank screen
+  if (!settings) {
+    return (
+      <div className="flex flex-col h-screen bg-ink overflow-hidden selection:bg-white/20">
+        <TopNavigation />
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 relative">
+          <DashboardSkeleton />
+        </main>
+      </div>
+    );
+  }
 
   const pinSetting = settings.find(s => s.key === "pinLock");
 
@@ -46,8 +57,8 @@ export default function App() {
   return (
     <ToastProvider>
       <ConfirmProvider>
-        <div className="flex h-screen bg-ink overflow-hidden selection:bg-white/20">
-          <Sidebar />
+        <div className="flex flex-col h-screen bg-ink overflow-hidden selection:bg-white/20">
+          <TopNavigation />
           <Suspense fallback={null}>
             <CommandPalette />
           </Suspense>
@@ -58,6 +69,7 @@ export default function App() {
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/bilan-tracker" element={<BilanTracker />} />
                   <Route path="/accounts" element={<Accounts />} />
+                  <Route path="/squad-builder" element={<SquadBuilder />} />
                   <Route path="/spin-tracker" element={<SpinTracker />} />
                   <Route path="/players" element={<PlayerDatabase />} />
                   <Route path="/journal" element={<EmotionalJournal />} />

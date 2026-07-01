@@ -35,8 +35,9 @@ db.version(3).stores({
   spinPlayers: "++id, spinId, playerId"
 });
 
-db.version(4).stores({
-  players: "++id, accountId, name, cardType, isBooster, overall, position, club, nation, efhubId"
+db.version(5).stores({
+  players: "++id, accountId, name, cardType, isBooster, overall, position, club, nation, efhubId",
+  squads: "++id, accountId"
 });
 
 export default db;

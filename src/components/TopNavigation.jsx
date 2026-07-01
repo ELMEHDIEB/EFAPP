@@ -1,0 +1,134 @@
+import React, { useMemo, useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import AnimatedTabs from "./forgeui/animated-tabs.jsx";
+
+const NAV_GROUPS = [
+  {
+    id: "CORE",
+    label: "CORE",
+    items: [
+      { id: "/", label: "Dashboard", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" },
+      { id: "/accounts", label: "Comptes", icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" },
+      { id: "/bilan-tracker", label: "Bilan", icon: "M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" },
+    ]
+  },
+  {
+    id: "ANALYTICS",
+    label: "ANALYTICS",
+    items: [
+      { id: "/analytics", label: "Analytics", icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" },
+      { id: "/journal", label: "Journal", icon: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" },
+      { id: "/leaderboard", label: "Leaderboard", icon: "M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" },
+      { id: "/achievements", label: "Achievements", icon: "M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" },
+    ]
+  },
+  {
+    id: "TOOLS",
+    label: "TOOLS",
+    items: [
+      { id: "/live-packs", label: "Live Packs", icon: "M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" },
+      { id: "/simulator", label: "Simulateur Box", icon: "M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" },
+      { id: "/epic-calculator", label: "Epic Calculator", icon: "M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" },
+      { id: "/spin-tracker", label: "Spin Tracker", icon: "M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" },
+      { id: "/squad-builder", label: "Squad Builder", icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" },
+      { id: "/players", label: "Database Joueurs", icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" },
+    ]
+  },
+  {
+    id: "SYSTEM",
+    label: "SYSTEM",
+    items: [
+      { id: "/settings", label: "Settings", icon: "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" },
+      { id: "/settings/data-management", label: "Data Management", icon: "M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" },
+      { id: "/sync", label: "Sync Center", icon: "M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" },
+    ]
+  }
+];
+
+export default function TopNavigation() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  // Find which group is currently active based on the URL
+  const currentGroup = useMemo(() => {
+    // 1. Exact match priority
+    for (const group of NAV_GROUPS) {
+      if (group.items.some(item => location.pathname === item.id)) return group;
+    }
+    // 2. StartsWith match (for sub-pages)
+    for (const group of NAV_GROUPS) {
+      if (group.items.some(item => item.id !== "/" && location.pathname.startsWith(item.id))) return group;
+    }
+    return NAV_GROUPS[0];
+  }, [location.pathname]);
+
+  // Find the exact active item
+  const currentItem = useMemo(() => {
+    // 1. Exact match priority
+    const exactMatch = currentGroup.items.find(item => location.pathname === item.id);
+    if (exactMatch) return exactMatch;
+    
+    // 2. StartsWith match (for sub-pages)
+    return currentGroup.items.find(item => item.id !== "/" && location.pathname.startsWith(item.id)) || currentGroup.items[0];
+  }, [location.pathname, currentGroup]);
+
+  const handleGroupChange = (group) => {
+    // Navigate to the first item of the new group
+    navigate(group.items[0].id);
+  };
+
+  const handleItemChange = (item) => {
+    navigate(item.id);
+  };
+
+  const openCommandPalette = () => {
+    window.dispatchEvent(new Event("open-command-palette"));
+  };
+
+  return (
+    <div className="flex flex-col border-b border-border bg-ink shadow-2xl">
+      {/* Top Header Row (Logo + Global Search + Primary Tabs) */}
+      <div className="flex items-center justify-between px-4 py-3 gap-6">
+        
+        {/* Logo Section */}
+        <div className="flex items-center gap-3 shrink-0">
+          <img src="/EFAPP-LOGO.ico" alt="EFAPP Logo" className="w-10 h-10 rounded shrink-0 object-contain shadow-[0_0_15px_rgba(16,185,129,0.2)]" />
+          <p className="text-base font-bold text-white tracking-widest uppercase hidden md:block">EFAPP</p>
+        </div>
+
+        {/* Primary Tabs (Groups) */}
+        <div className="flex-1 overflow-hidden flex justify-center">
+          <AnimatedTabs 
+            tabs={NAV_GROUPS}
+            activeTab={currentGroup}
+            onChange={handleGroupChange}
+            variant="default"
+          />
+        </div>
+
+        {/* Global Action (Command Palette) */}
+        <button 
+          onClick={openCommandPalette}
+          className="shrink-0 flex items-center justify-center p-2 rounded-full bg-surfaceElevated border border-border hover:border-accent hover:shadow-[0_0_10px_rgba(16,185,129,0.2)] transition-all text-textdim hover:text-accent"
+          title="Search (Ctrl + K)"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </button>
+
+      </div>
+
+      {/* Secondary Tabs Row (Items of active group) */}
+      <div className="px-4 w-full flex justify-center">
+        <AnimatedTabs 
+          tabs={currentGroup.items}
+          activeTab={currentItem}
+          onChange={handleItemChange}
+          variant="underline"
+          className="w-full max-w-4xl justify-center"
+        />
+      </div>
+    </div>
+  );
+}

@@ -251,7 +251,7 @@ function PlayerFormModal({ player, accountId, onClose }) {
               <input 
                 type="number"
                 min="0"
-                max="105"
+                max="150"
                 value={overall}
                 onChange={(e) => setOverall(e.target.value)}
                 className="input"
